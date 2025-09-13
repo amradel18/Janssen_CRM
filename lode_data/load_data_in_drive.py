@@ -10,6 +10,7 @@ import streamlit as st
 import pandas as pd
 from datetime import datetime
 from dotenv import load_dotenv
+from google.oauth2.credentials import Credentials
 
 load_dotenv()
 
@@ -35,37 +36,54 @@ def _get_drive_folder_id() -> str:
 
 def get_drive_service():
     SCOPES = ['https://www.googleapis.com/auth/drive']
+    # Prefer credentials from Streamlit secrets or environment variables
+    token = _get_secret("google", "token", env_var="GOOGLE_TOKEN")
+    refresh_token = _get_secret("google", "refresh_token", env_var="GOOGLE_REFRESH_TOKEN")
+    token_uri = _get_secret("google", "token_uri", env_var="GOOGLE_TOKEN_URI", default="https://oauth2.googleapis.com/token")
+    client_id = _get_secret("google", "client_id", env_var="GOOGLE_CLIENT_ID")
+    client_secret = _get_secret("google", "client_secret", env_var="GOOGLE_CLIENT_SECRET")
+    scopes = _get_secret("google", "scopes", env_var="GOOGLE_SCOPES", default=SCOPES)
+
+    # Normalize scopes to a list
+    if isinstance(scopes, str):
+        scopes = [s.strip(" `\"'") for s in scopes.replace(",", " ").split() if s.strip(" `\"'")]
+    if not scopes:
+        scopes = SCOPES
+
     creds = None
-    token_path = _get_env('GOOGLE_TOKEN_FILE', 'token.pkl')
-    if os.path.exists(token_path):
-        with open(token_path, 'rb') as token:
-            creds = pickle.load(token)
-    if not creds or not getattr(creds, 'valid', False):
-        if creds and getattr(creds, 'expired', False) and getattr(creds, 'refresh_token', None):
-            creds.refresh(Request())
-        else:
-            from google_auth_oauthlib.flow import InstalledAppFlow
-            client_id = _get_secret("google", "client_id", env_var="GOOGLE_CLIENT_ID")
-            client_secret = _get_secret("google", "client_secret", env_var="GOOGLE_CLIENT_SECRET")
-            redirect_uri = _get_secret("google", "redirect_uri", env_var="GOOGLE_REDIRECT_URI", default="http://localhost")
-            flow = None
-            if client_id and client_secret:
-                client_config = {
-                    'installed': {
-                        'client_id': client_id,
-                        'client_secret': client_secret,
-                        'auth_uri': 'https://accounts.google.com/o/oauth2/auth',
-                        'token_uri': 'https://oauth2.googleapis.com/token',
-                        'redirect_uris': [redirect_uri]
-                    }
+    if token and client_id and client_secret:
+        creds = Credentials(
+            token=token,
+            refresh_token=refresh_token,
+            token_uri=token_uri,
+            client_id=client_id,
+            client_secret=client_secret,
+            scopes=scopes,
+        )
+        if not creds.valid:
+            try:
+                if getattr(creds, 'expired', False) and getattr(creds, 'refresh_token', None):
+                    creds.refresh(Request())
+            except Exception as e:
+                print(f"⚠️ Failed to refresh Google token: {e}")
+    else:
+        from google_auth_oauthlib.flow import InstalledAppFlow
+        redirect_uri = _get_secret("google", "redirect_uri", env_var="GOOGLE_REDIRECT_URI", default="http://localhost")
+        if client_id and client_secret:
+            client_config = {
+                'installed': {
+                    'client_id': client_id,
+                    'client_secret': client_secret,
+                    'auth_uri': 'https://accounts.google.com/o/oauth2/auth',
+                    'token_uri': token_uri,
+                    'redirect_uris': [redirect_uri]
                 }
-                flow = InstalledAppFlow.from_client_config(client_config, SCOPES)
-            else:
-                # Fallback to client_secret.json for local/dev
-                flow = InstalledAppFlow.from_client_secrets_file('client_secret.json', SCOPES)
-            creds = flow.run_local_server(port=0)
-        with open(token_path, 'wb') as token:
-            pickle.dump(creds, token)
+            }
+            flow = InstalledAppFlow.from_client_config(client_config, scopes)
+        else:
+            flow = InstalledAppFlow.from_client_secrets_file('client_secret.json', scopes)
+        creds = flow.run_local_server(port=0)
+
     return build('drive', 'v3', credentials=creds)
 
 def get_file_id_by_name(filename: str, service, folder_id: Optional[str] = None) -> Optional[str]:

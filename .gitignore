@@ -5,7 +5,7 @@
 streamlit/secrets.toml
 
 # Tokens and credentials
-client_secret.json
+
 token.pkl
 
 # Virtual environments
