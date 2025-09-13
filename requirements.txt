@@ -15,5 +15,9 @@ openpyxl==3.1.2
 xlrd==2.0.1
 geopy==2.4.1
 python-dotenv==1.0.0
+<<<<<<< HEAD
 streamlit-aggrid
 sqlalchemy==2.0.25
+=======
+streamlit-aggrid
+>>>>>>> 06e4f46 (Initial public commit)

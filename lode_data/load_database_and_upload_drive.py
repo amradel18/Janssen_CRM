@@ -11,7 +11,10 @@ from google_auth_oauthlib.flow import InstalledAppFlow
 from google.auth.transport.requests import Request
 from googleapiclient.discovery import build
 from googleapiclient.http import MediaIoBaseUpload, MediaIoBaseDownload
+<<<<<<< HEAD
 from google.oauth2.credentials import Credentials
+=======
+>>>>>>> 06e4f46 (Initial public commit)
 import streamlit as st
 from dotenv import load_dotenv
 
@@ -90,6 +93,7 @@ def cached_table_query(table_name: str, database_name: str = 'janssencrm') -> pd
 
 
 def get_drive_service():
+<<<<<<< HEAD
     SCOPES = ['https://www.googleapis.com/auth/drive']
     # Load credentials from Streamlit secrets or environment variables
     token = _get_secret("google", "token", env_var="GOOGLE_TOKEN")
@@ -138,6 +142,41 @@ def get_drive_service():
         else:
             flow = InstalledAppFlow.from_client_secrets_file(CLIENT_SECRETS_FILE, scopes)
         creds = flow.run_local_server(port=0)
+=======
+    creds = None
+    if os.path.exists(TOKEN_FILE):
+        try:
+            with open(TOKEN_FILE, 'rb') as token:
+                creds = pickle.load(token)
+        except Exception:
+            print("⚠️ token.pkl is corrupted or unreadable - it will be recreated.")
+            creds = None
+
+    if not creds or not getattr(creds, "valid", False):
+        if creds and getattr(creds, "expired", False) and getattr(creds, "refresh_token", None):
+            creds.refresh(Request())
+        else:
+            # Prefer in-app client config from secrets/.env, fallback to client_secret.json for local/dev
+            client_id = _get_secret("google", "client_id", env_var="GOOGLE_CLIENT_ID")
+            client_secret = _get_secret("google", "client_secret", env_var="GOOGLE_CLIENT_SECRET")
+            redirect_uri = _get_secret("google", "redirect_uri", env_var="GOOGLE_REDIRECT_URI", default="http://localhost")
+            if client_id and client_secret:
+                client_config = {
+                    'installed': {
+                        'client_id': client_id,
+                        'client_secret': client_secret,
+                        'auth_uri': 'https://accounts.google.com/o/oauth2/auth',
+                        'token_uri': 'https://oauth2.googleapis.com/token',
+                        'redirect_uris': [redirect_uri]
+                    }
+                }
+                flow = InstalledAppFlow.from_client_config(client_config, SCOPES)
+            else:
+                flow = InstalledAppFlow.from_client_secrets_file(CLIENT_SECRETS_FILE, SCOPES)
+            creds = flow.run_local_server(port=0)
+        with open(TOKEN_FILE, 'wb') as token:
+            pickle.dump(creds, token)
+>>>>>>> 06e4f46 (Initial public commit)
 
     return build('drive', 'v3', credentials=creds)
 
