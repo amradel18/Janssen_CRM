@@ -1,0 +1,200 @@
+2025-09-12 02:15:53,359 - crm_dashboard - ERROR - Error: UnhashableParamError - Cannot hash argument 'service' (of type `googleapiclient.discovery.Resource`) in 'read_csv_from_drive_by_name'.
+
+To address this, you can tell Streamlit not to hash this argument by adding a
+leading underscore to the argument's name in the function signature:
+
+```
+@st.cache_data
+def read_csv_from_drive_by_name(_service, ...):
+    ...
+```
+            
+Context: {'function': 'main', 'section': 'data_loading'}
+Traceback: Traceback (most recent call last):
+  File "C:\Users\Admin\AppData\Local\Programs\Python\Python312\Lib\site-packages\streamlit\runtime\caching\hashing.py", line 646, in _to_bytes
+    reduce_data = obj.__reduce__()
+                  ^^^^^^^^^^^^^^^^
+  File "C:\Users\Admin\AppData\Local\Programs\Python\Python312\Lib\copyreg.py", line 70, in _reduce_ex
+    raise TypeError(f"cannot pickle {cls.__name__!r} object")
+TypeError: cannot pickle 'function' object
+
+The above exception was the direct cause of the following exception:
+
+Traceback (most recent call last):
+  File "C:\Users\Admin\AppData\Local\Programs\Python\Python312\Lib\site-packages\streamlit\runtime\caching\cache_utils.py", line 467, in _make_value_key
+    update_hash(
+  File "C:\Users\Admin\AppData\Local\Programs\Python\Python312\Lib\site-packages\streamlit\runtime\caching\hashing.py", line 170, in update_hash
+    ch.update(hasher, val)
+  File "C:\Users\Admin\AppData\Local\Programs\Python\Python312\Lib\site-packages\streamlit\runtime\caching\hashing.py", line 346, in update
+    b = self.to_bytes(obj)
+        ^^^^^^^^^^^^^^^^^^
+  File "C:\Users\Admin\AppData\Local\Programs\Python\Python312\Lib\site-packages\streamlit\runtime\caching\hashing.py", line 328, in to_bytes
+    b = b"%s:%s" % (tname, self._to_bytes(obj))
+                           ^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\Admin\AppData\Local\Programs\Python\Python312\Lib\site-packages\streamlit\runtime\caching\hashing.py", line 651, in _to_bytes
+    self.update(h, item)
+  File "C:\Users\Admin\AppData\Local\Programs\Python\Python312\Lib\site-packages\streamlit\runtime\caching\hashing.py", line 346, in update
+    b = self.to_bytes(obj)
+        ^^^^^^^^^^^^^^^^^^
+  File "C:\Users\Admin\AppData\Local\Programs\Python\Python312\Lib\site-packages\streamlit\runtime\caching\hashing.py", line 328, in to_bytes
+    b = b"%s:%s" % (tname, self._to_bytes(obj))
+                           ^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\Admin\AppData\Local\Programs\Python\Python312\Lib\site-packages\streamlit\runtime\caching\hashing.py", line 648, in _to_bytes
+    raise UnhashableTypeError() from ex
+streamlit.runtime.caching.cache_errors.UnhashableTypeError
+
+During handling of the above exception, another exception occurred:
+
+Traceback (most recent call last):
+  File "F:\C_S\pages\1_dashboard.py", line 76, in main
+    dataframes = load_all_data()
+                 ^^^^^^^^^^^^^^^
+  File "F:\C_S\process\data_loader.py", line 36, in load_all_data
+    dataframes = load_tables_from_drive(all_tables)
+                 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "F:\C_S\lode_data\load_data_in_drive.py", line 137, in load_tables_from_drive
+    st.session_state.dataframes = lode_drive()
+                                  ^^^^^^^^^^^^
+  File "F:\C_S\lode_data\load_data_in_drive.py", line 115, in lode_drive
+    df = read_csv_from_drive_by_name(filename, service=service, folder_id=folder_id)
+         ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\Admin\AppData\Local\Programs\Python\Python312\Lib\site-packages\streamlit\runtime\caching\cache_utils.py", line 227, in __call__
+    return self._get_or_create_cached_value(args, kwargs, spinner_message)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\Admin\AppData\Local\Programs\Python\Python312\Lib\site-packages\streamlit\runtime\caching\cache_utils.py", line 242, in _get_or_create_cached_value
+    value_key = _make_value_key(
+                ^^^^^^^^^^^^^^^^
+  File "C:\Users\Admin\AppData\Local\Programs\Python\Python312\Lib\site-packages\streamlit\runtime\caching\cache_utils.py", line 475, in _make_value_key
+    raise UnhashableParamError(cache_type, func, arg_name, arg_value, exc)
+  File "C:\Users\Admin\AppData\Local\Programs\Python\Python312\Lib\site-packages\streamlit\runtime\caching\cache_utils.py", line 467, in _make_value_key
+    update_hash(
+  File "C:\Users\Admin\AppData\Local\Programs\Python\Python312\Lib\site-packages\streamlit\runtime\caching\hashing.py", line 170, in update_hash
+    ch.update(hasher, val)
+  File "C:\Users\Admin\AppData\Local\Programs\Python\Python312\Lib\site-packages\streamlit\runtime\caching\hashing.py", line 346, in update
+    b = self.to_bytes(obj)
+        ^^^^^^^^^^^^^^^^^^
+  File "C:\Users\Admin\AppData\Local\Programs\Python\Python312\Lib\site-packages\streamlit\runtime\caching\hashing.py", line 328, in to_bytes
+    b = b"%s:%s" % (tname, self._to_bytes(obj))
+                           ^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\Admin\AppData\Local\Programs\Python\Python312\Lib\site-packages\streamlit\runtime\caching\hashing.py", line 651, in _to_bytes
+    self.update(h, item)
+  File "C:\Users\Admin\AppData\Local\Programs\Python\Python312\Lib\site-packages\streamlit\runtime\caching\hashing.py", line 346, in update
+    b = self.to_bytes(obj)
+        ^^^^^^^^^^^^^^^^^^
+  File "C:\Users\Admin\AppData\Local\Programs\Python\Python312\Lib\site-packages\streamlit\runtime\caching\hashing.py", line 328, in to_bytes
+    b = b"%s:%s" % (tname, self._to_bytes(obj))
+                           ^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\Admin\AppData\Local\Programs\Python\Python312\Lib\site-packages\streamlit\runtime\caching\hashing.py", line 648, in _to_bytes
+    raise UnhashableTypeError() from ex
+streamlit.runtime.caching.cache_errors.UnhashableParamError: Cannot hash argument 'service' (of type `googleapiclient.discovery.Resource`) in 'read_csv_from_drive_by_name'.
+
+To address this, you can tell Streamlit not to hash this argument by adding a
+leading underscore to the argument's name in the function signature:
+
+```
+@st.cache_data
+def read_csv_from_drive_by_name(_service, ...):
+    ...
+```
+            
+
+2025-09-12 02:15:58,349 - crm_dashboard - ERROR - Error: UnhashableParamError - Cannot hash argument 'service' (of type `googleapiclient.discovery.Resource`) in 'read_csv_from_drive_by_name'.
+
+To address this, you can tell Streamlit not to hash this argument by adding a
+leading underscore to the argument's name in the function signature:
+
+```
+@st.cache_data
+def read_csv_from_drive_by_name(_service, ...):
+    ...
+```
+            
+Context: {'function': 'main', 'section': 'data_loading'}
+Traceback: Traceback (most recent call last):
+  File "C:\Users\Admin\AppData\Local\Programs\Python\Python312\Lib\site-packages\streamlit\runtime\caching\hashing.py", line 646, in _to_bytes
+    reduce_data = obj.__reduce__()
+                  ^^^^^^^^^^^^^^^^
+  File "C:\Users\Admin\AppData\Local\Programs\Python\Python312\Lib\copyreg.py", line 70, in _reduce_ex
+    raise TypeError(f"cannot pickle {cls.__name__!r} object")
+TypeError: cannot pickle 'function' object
+
+The above exception was the direct cause of the following exception:
+
+Traceback (most recent call last):
+  File "C:\Users\Admin\AppData\Local\Programs\Python\Python312\Lib\site-packages\streamlit\runtime\caching\cache_utils.py", line 467, in _make_value_key
+    update_hash(
+  File "C:\Users\Admin\AppData\Local\Programs\Python\Python312\Lib\site-packages\streamlit\runtime\caching\hashing.py", line 170, in update_hash
+    ch.update(hasher, val)
+  File "C:\Users\Admin\AppData\Local\Programs\Python\Python312\Lib\site-packages\streamlit\runtime\caching\hashing.py", line 346, in update
+    b = self.to_bytes(obj)
+        ^^^^^^^^^^^^^^^^^^
+  File "C:\Users\Admin\AppData\Local\Programs\Python\Python312\Lib\site-packages\streamlit\runtime\caching\hashing.py", line 328, in to_bytes
+    b = b"%s:%s" % (tname, self._to_bytes(obj))
+                           ^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\Admin\AppData\Local\Programs\Python\Python312\Lib\site-packages\streamlit\runtime\caching\hashing.py", line 651, in _to_bytes
+    self.update(h, item)
+  File "C:\Users\Admin\AppData\Local\Programs\Python\Python312\Lib\site-packages\streamlit\runtime\caching\hashing.py", line 346, in update
+    b = self.to_bytes(obj)
+        ^^^^^^^^^^^^^^^^^^
+  File "C:\Users\Admin\AppData\Local\Programs\Python\Python312\Lib\site-packages\streamlit\runtime\caching\hashing.py", line 328, in to_bytes
+    b = b"%s:%s" % (tname, self._to_bytes(obj))
+                           ^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\Admin\AppData\Local\Programs\Python\Python312\Lib\site-packages\streamlit\runtime\caching\hashing.py", line 648, in _to_bytes
+    raise UnhashableTypeError() from ex
+streamlit.runtime.caching.cache_errors.UnhashableTypeError
+
+During handling of the above exception, another exception occurred:
+
+Traceback (most recent call last):
+  File "F:\C_S\pages\1_dashboard.py", line 76, in main
+    dataframes = load_all_data()
+                 ^^^^^^^^^^^^^^^
+  File "F:\C_S\process\data_loader.py", line 36, in load_all_data
+    dataframes = load_tables_from_drive(all_tables)
+                 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "F:\C_S\lode_data\load_data_in_drive.py", line 137, in load_tables_from_drive
+    st.session_state.dataframes = lode_drive()
+                                  ^^^^^^^^^^^^
+  File "F:\C_S\lode_data\load_data_in_drive.py", line 115, in lode_drive
+    df = read_csv_from_drive_by_name(filename, service=service, folder_id=folder_id)
+         ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\Admin\AppData\Local\Programs\Python\Python312\Lib\site-packages\streamlit\runtime\caching\cache_utils.py", line 227, in __call__
+    return self._get_or_create_cached_value(args, kwargs, spinner_message)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\Admin\AppData\Local\Programs\Python\Python312\Lib\site-packages\streamlit\runtime\caching\cache_utils.py", line 242, in _get_or_create_cached_value
+    value_key = _make_value_key(
+                ^^^^^^^^^^^^^^^^
+  File "C:\Users\Admin\AppData\Local\Programs\Python\Python312\Lib\site-packages\streamlit\runtime\caching\cache_utils.py", line 475, in _make_value_key
+    raise UnhashableParamError(cache_type, func, arg_name, arg_value, exc)
+  File "C:\Users\Admin\AppData\Local\Programs\Python\Python312\Lib\site-packages\streamlit\runtime\caching\cache_utils.py", line 467, in _make_value_key
+    update_hash(
+  File "C:\Users\Admin\AppData\Local\Programs\Python\Python312\Lib\site-packages\streamlit\runtime\caching\hashing.py", line 170, in update_hash
+    ch.update(hasher, val)
+  File "C:\Users\Admin\AppData\Local\Programs\Python\Python312\Lib\site-packages\streamlit\runtime\caching\hashing.py", line 346, in update
+    b = self.to_bytes(obj)
+        ^^^^^^^^^^^^^^^^^^
+  File "C:\Users\Admin\AppData\Local\Programs\Python\Python312\Lib\site-packages\streamlit\runtime\caching\hashing.py", line 328, in to_bytes
+    b = b"%s:%s" % (tname, self._to_bytes(obj))
+                           ^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\Admin\AppData\Local\Programs\Python\Python312\Lib\site-packages\streamlit\runtime\caching\hashing.py", line 651, in _to_bytes
+    self.update(h, item)
+  File "C:\Users\Admin\AppData\Local\Programs\Python\Python312\Lib\site-packages\streamlit\runtime\caching\hashing.py", line 346, in update
+    b = self.to_bytes(obj)
+        ^^^^^^^^^^^^^^^^^^
+  File "C:\Users\Admin\AppData\Local\Programs\Python\Python312\Lib\site-packages\streamlit\runtime\caching\hashing.py", line 328, in to_bytes
+    b = b"%s:%s" % (tname, self._to_bytes(obj))
+                           ^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\Admin\AppData\Local\Programs\Python\Python312\Lib\site-packages\streamlit\runtime\caching\hashing.py", line 648, in _to_bytes
+    raise UnhashableTypeError() from ex
+streamlit.runtime.caching.cache_errors.UnhashableParamError: Cannot hash argument 'service' (of type `googleapiclient.discovery.Resource`) in 'read_csv_from_drive_by_name'.
+
+To address this, you can tell Streamlit not to hash this argument by adding a
+leading underscore to the argument's name in the function signature:
+
+```
+@st.cache_data
+def read_csv_from_drive_by_name(_service, ...):
+    ...
+```
+            
+

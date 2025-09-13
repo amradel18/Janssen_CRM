@@ -1,0 +1,25 @@
+# Environment and secrets
+.env
+.env.local
+.streamlit/secrets.toml
+streamlit/secrets.toml
+
+# Tokens and credentials
+client_secret.json
+token.pkl
+
+# Virtual environments
+venv/
+.venv/
+env/
+ENV/
+
+# Python
+__pycache__/
+*.py[cod]
+*.egg-info/
+
+# OS / editors
+.DS_Store
+.vscode/
+.idea/
