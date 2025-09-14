@@ -85,7 +85,7 @@ def get_engine():
 def get_database_connection():
     """Return a SQLAlchemy engine for the Janssen CRM database."""
     return get_engine()
-
+#Synchronization failed. Please check the logs for details
 
 @st.cache_data(show_spinner=False, ttl=600)
 def cached_query(sql: str, params: Optional[tuple] = None, database_name: str = 'janssencrm') -> pd.DataFrame:
@@ -181,39 +181,45 @@ def read_csv_from_drive_by_id(file_id: str, _service) -> pd.DataFrame:
 
 
 def upload_or_update_csv_on_drive(file_name: str, df: pd.DataFrame, folder_id: Optional[str] = None, _service=None) -> str:
-    if _service is None:
-        _service = get_drive_service()
-    if folder_id is None:
-        folder_id = _get_drive_folder_id()
+    try:
+        if _service is None:
+            _service = get_drive_service()
+        if folder_id is None:
+            folder_id = _get_drive_folder_id()
 
-    # Try find existing
-    existing_id = get_file_id_by_name(file_name, _service, folder_id)
+        # Try find existing
+        existing_id = get_file_id_by_name(file_name, _service, folder_id)
 
-    buf = io.BytesIO()
-    df.to_csv(buf, index=False)
-    buf.seek(0)
-    media = MediaIoBaseUpload(buf, mimetype='text/csv')
+        buf = io.BytesIO()
+        df.to_csv(buf, index=False)
+        buf.seek(0)
+        media = MediaIoBaseUpload(buf, mimetype='text/csv')
 
-    if existing_id:
-        file_metadata = {"name": file_name}
-        updated = _service.files().update(
-            fileId=existing_id,
-            media_body=media,
-            body=file_metadata,
-            fields="id"
-        ).execute()
-        return updated["id"]
-    else:
-        file_metadata = {
-            "name": file_name,
-            "parents": [folder_id] if folder_id else []
-        }
-        created = _service.files().create(
-            body=file_metadata,
-            media_body=media,
-            fields="id"
-        ).execute()
-        return created["id"]
+        if existing_id:
+            file_metadata = {"name": file_name}
+            updated = _service.files().update(
+                fileId=existing_id,
+                media_body=media,
+                body=file_metadata,
+                fields="id"
+            ).execute()
+            return updated["id"]
+        else:
+            file_metadata = {
+                "name": file_name,
+                "parents": [folder_id] if folder_id else []
+            }
+            created = _service.files().create(
+                body=file_metadata,
+                media_body=media,
+                fields="id"
+            ).execute()
+            return created["id"]
+    except Exception as e:
+        msg = f"Failed to upload or update file '{file_name}' on Drive: {e}"
+        st.error(f"❌ {msg}")
+        print(f"❌ {msg}")
+        raise
 
 
 def export_incremental_tables_to_drive(tables: List[str], _service=None, folder_id: Optional[str] = None) -> Dict[str, str]:
@@ -269,21 +275,25 @@ def export_incremental_tables_to_drive(
             conn.execute(text("SELECT 1")).fetchone()
         print("✅ Database connection successful!")
     except Exception as e:
-        print(f"❌ Database connection failed: {e}")
+        msg = f"Database connection failed: {e}"
+        st.error(f"❌ {msg}")
+        print(f"❌ {msg}")
         print("\n🔧 Please ensure:")
         print("   1. MySQL server is running")
         print("   2. Database credentials are correct in DB_CONFIG")
         print("   3. Database 'janssencrm' exists")
         print("   4. User has proper permissions")
-        return {}
+        return {"error": msg}
 
     # Validate Google Drive auth
     try:
         service = get_drive_service()
         print("✅ Google Drive authentication successful!")
     except Exception as e:
-        print(f"❌ Google Drive authentication failed: {e}")
-        return {}
+        msg = f"Google Drive authentication failed: {e}"
+        st.error(f"❌ {msg}")
+        print(f"❌ {msg}")
+        return {"error": msg}
 
     summary: Dict[str, Dict] = {}
 
@@ -327,8 +337,10 @@ def export_incremental_tables_to_drive(
             summary[tbl] = {"new_rows": int(new_rows or df.shape[0]), "file_id": uploaded_file_id}
             print(f"✅ Uploaded {filename} to Drive. File ID: {uploaded_file_id}")
         except Exception as e:
-            summary[tbl] = {"error": str(e)}
-            print(f"❌ Failed to upload {filename} to Drive: {e}")
+            msg = f"Failed to upload {filename} to Drive: {e}"
+            summary[tbl] = {"error": msg}
+            st.error(f"❌ {msg}")
+            print(f"❌ {msg}")
 
     return summary
 

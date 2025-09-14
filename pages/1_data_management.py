@@ -73,25 +73,38 @@ with st.container():
                     # Create a DataFrame to display results
                     results_data = []
                     for table, info in result.items():
+                        if table == "error":
+                            continue
                         results_data.append({
                             "Table": table,
-                            "New Records": info['new_rows'],
-                            "Status": "✅ Success" if 'file_id' in info else "❌ Failed"
+                            "New Records": info.get('new_rows', 0) if isinstance(info, dict) else 0,
+                            "Status": "✅ Success" if isinstance(info, dict) and 'file_id' in info else "❌ Failed"
                         })
                     
-                    results_df = pd.DataFrame(results_data)
+                    results_df = pd.DataFrame(results_data) if results_data else pd.DataFrame(columns=["Table", "New Records", "Status"])
                     
                     # Store sync time
                     st.session_state.last_sync_time = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
                     st.session_state.last_sync_results = results_df
-                    st.dataframe(results_df)
-                    st.success(f"Synchronization completed successfully! Updated {len(result)} tables.")
+                    if not results_df.empty:
+                        st.dataframe(results_df)
+                    
+                    # If a top-level error exists, show it prominently
+                    if isinstance(result, dict) and 'error' in result:
+                        st.error(f"❌ {result['error']}")
+                    
+                    # Decide success/failure message
+                    if isinstance(result, dict) and any(isinstance(v, dict) and 'file_id' in v for v in result.values()):
+                        st.success(f"Synchronization completed! Updated {sum(1 for v in result.values() if isinstance(v, dict) and 'file_id' in v)} tables.")
+                    else:
+                        st.error("Synchronization failed. Please check the logs and errors above.")
 
                 else:
                     st.error("Synchronization failed. Please check the logs for details.")
             except Exception as e:
-                st.error(f"Error during synchronization: {str(e)}")
-    
+                st.error(f"❌ Error during synchronization: {str(e)}")
+                print(f"❌ Error during synchronization: {str(e)}")
+
     # Display previous results if available
 
 
