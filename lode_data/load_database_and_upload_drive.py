@@ -258,6 +258,7 @@ def export_incremental_tables_to_drive(
     if pk_column_map is None:
         pk_column_map = {}
 
+    # Validate DB connection
     try:
         engine = get_engine()
         with engine.connect() as conn:
@@ -272,6 +273,7 @@ def export_incremental_tables_to_drive(
         print("   4. User has proper permissions")
         return {}
 
+    # Validate Google Drive auth
     try:
         service = get_drive_service()
         print("✅ Google Drive authentication successful!")
@@ -279,7 +281,7 @@ def export_incremental_tables_to_drive(
         print(f"❌ Google Drive authentication failed: {e}")
         return {}
 
-    summary = {}
+    summary: Dict[str, Dict] = {}
 
     for tbl in table_names:
         pk = pk_column_map.get(tbl, "id")
@@ -287,8 +289,8 @@ def export_incremental_tables_to_drive(
         print(f"\n🔁 Processing table: {tbl} (pk='{pk}')")
 
         existing_file_id = get_file_id_by_name(filename, service, folder_id)
-        last_id_on_drive = None
-        
+        last_id_on_drive: Optional[int] = None
+
         if existing_file_id:
             try:
                 df_existing = read_csv_from_drive_by_id(existing_file_id, service)
@@ -299,7 +301,7 @@ def export_incremental_tables_to_drive(
                         print(f"✅ Found last ID on Drive for table {tbl}: {last_id_on_drive}")
             except Exception as e:
                 print(f"⚠️ Could not read or process existing file {filename}: {e}. Will perform a full refresh.")
-        
+
         # Check if there are new rows in the database
         try:
             engine = get_engine()
