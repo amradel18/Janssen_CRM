@@ -30,16 +30,20 @@ def _get_env(var_name: str, default: Optional[str] = None) -> Optional[str]:
 
 
 def _get_secret(section: str, key: str, env_var: Optional[str] = None, default: Optional[str] = None) -> Optional[str]:
-    """Prefer .env first to avoid Streamlit warning when secrets.toml is missing, then fallback to st.secrets if exists."""
+    """Read from Streamlit secrets if present (works on Streamlit Cloud even without a local secrets.toml file),
+    otherwise fall back to environment variables, then default."""
+    # Try Streamlit Secrets first (available on Streamlit Cloud even without a local secrets.toml file)
+    try:
+        val = st.secrets[section][key]
+        if val is not None and str(val) != "":
+            return val
+    except Exception:
+        pass
+    # Fall back to env var if provided
     if env_var:
         env_val = _get_env(env_var, None)
         if env_val is not None and env_val != "":
             return env_val
-    if _has_streamlit_secrets():
-        try:
-            return st.secrets[section][key]
-        except Exception:
-            pass
     return default
 
 
