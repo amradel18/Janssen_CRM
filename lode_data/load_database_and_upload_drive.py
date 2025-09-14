@@ -318,13 +318,13 @@ def export_incremental_tables_to_drive(
 
             # Correct argument order and remove unsupported extra parameter
             uploaded_file_id = upload_or_update_csv_on_drive(filename, df, folder_id=folder_id, _service=service)
-             summary[tbl] = {"new_rows": int(new_rows or df.shape[0]), "file_id": uploaded_file_id}
-             print(f"✅ Uploaded {filename} to Drive. File ID: {uploaded_file_id}")
-         except Exception as e:
-             summary[tbl] = {"error": str(e)}
-             print(f"❌ Failed to upload {filename} to Drive: {e}")
+            summary[tbl] = {"new_rows": int(new_rows or df.shape[0]), "file_id": uploaded_file_id}
+            print(f"✅ Uploaded {filename} to Drive. File ID: {uploaded_file_id}")
+        except Exception as e:
+            summary[tbl] = {"error": str(e)}
+            print(f"❌ Failed to upload {filename} to Drive: {e}")
 
-     return summary
+    return summary
 
 
 if __name__ == "__main__":
