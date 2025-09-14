@@ -42,18 +42,14 @@ try:
 
     # Sidebar filter for date range
     st.sidebar.header("Filter by Date Range")
--    min_date = tickets_df['created_at'].min().date()
--    max_date = tickets_df['created_at'].max().date()
--    start_date = st.sidebar.date_input('Start date', min_date, min_value=min_date, max_value=max_date)
--    end_date = st.sidebar.date_input('End date', max_date, min_value=start_date, max_value=max_date)
-+    valid_dates = tickets_df['created_at'].dropna()
-+    if valid_dates.empty:
-+        st.info("No valid ticket dates found to filter by.")
-+        st.stop()
-+    min_date = valid_dates.min().date()
-+    max_date = valid_dates.max().date()
-+    start_date = st.sidebar.date_input('Start date', min_date, min_value=min_date, max_value=max_date)
-+    end_date = st.sidebar.date_input('End date', max_date, min_value=start_date, max_value=max_date)
+    valid_dates = tickets_df['created_at'].dropna()
+    if valid_dates.empty:
+        st.info("No valid ticket dates found to filter by.")
+        st.stop()
+    min_date = valid_dates.min().date()
+    max_date = valid_dates.max().date()
+    start_date = st.sidebar.date_input('Start date', min_date, min_value=min_date, max_value=max_date)
+    end_date = st.sidebar.date_input('End date', max_date, min_value=start_date, max_value=max_date)
 
     # Convert start_date and end_date to datetime
     start_date = pd.to_datetime(start_date)
