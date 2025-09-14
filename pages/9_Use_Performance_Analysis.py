@@ -5,17 +5,22 @@ from process.data_loader import load_all_data
 from auth.login import login_form
 import numpy as np
 
+# Ensure page config is set before any other Streamlit calls
+st.set_page_config(page_title="User Performance Analysis", layout="wide")
+
 # Function to check authentication
 if not login_form():
     st.stop()
-
-st.set_page_config(page_title="User Performance Analysis", layout="wide")
 
 st.title("User Performance Analysis")
 
 # Load data
 try:
-    dataframes = load_all_data()
+    if 'dataframes' not in st.session_state:
+        with st.spinner("Loading data..."):
+            st.session_state.dataframes = load_all_data()
+    dataframes = st.session_state.dataframes
+
     users_df = dataframes.get('users')
     tickets_df = dataframes.get('tickets')
     customercall_df = dataframes.get('customercall')
@@ -26,9 +31,9 @@ try:
         st.stop()
 
     # Convert created_at to datetime
-    tickets_df['created_at'] = pd.to_datetime(tickets_df['created_at'])
-    customercall_df['created_at'] = pd.to_datetime(customercall_df['created_at'])
-    ticketcall_df['created_at'] = pd.to_datetime(ticketcall_df['created_at'])
+    tickets_df['created_at'] = pd.to_datetime(tickets_df['created_at'], errors='coerce')
+    customercall_df['created_at'] = pd.to_datetime(customercall_df['created_at'], errors='coerce')
+    ticketcall_df['created_at'] = pd.to_datetime(ticketcall_df['created_at'], errors='coerce')
 
     # Sidebar filter for users
     st.sidebar.header("Filter by User")
@@ -37,10 +42,18 @@ try:
 
     # Sidebar filter for date range
     st.sidebar.header("Filter by Date Range")
-    min_date = tickets_df['created_at'].min().date()
-    max_date = tickets_df['created_at'].max().date()
-    start_date = st.sidebar.date_input('Start date', min_date, min_value=min_date, max_value=max_date)
-    end_date = st.sidebar.date_input('End date', max_date, min_value=start_date, max_value=max_date)
+-    min_date = tickets_df['created_at'].min().date()
+-    max_date = tickets_df['created_at'].max().date()
+-    start_date = st.sidebar.date_input('Start date', min_date, min_value=min_date, max_value=max_date)
+-    end_date = st.sidebar.date_input('End date', max_date, min_value=start_date, max_value=max_date)
++    valid_dates = tickets_df['created_at'].dropna()
++    if valid_dates.empty:
++        st.info("No valid ticket dates found to filter by.")
++        st.stop()
++    min_date = valid_dates.min().date()
++    max_date = valid_dates.max().date()
++    start_date = st.sidebar.date_input('Start date', min_date, min_value=min_date, max_value=max_date)
++    end_date = st.sidebar.date_input('End date', max_date, min_value=start_date, max_value=max_date)
 
     # Convert start_date and end_date to datetime
     start_date = pd.to_datetime(start_date)
@@ -48,15 +61,15 @@ try:
 
     # Filter data based on selected user
     if selected_user != 'All':
-        user_id = users_df[users_df['name'] == selected_user]['id'].iloc[0]
-        tickets_df = tickets_df[tickets_df['created_by'] == user_id]
-        customercall_df = customercall_df[customercall_df['created_by'] == user_id]
-        ticketcall_df = ticketcall_df[ticketcall_df['created_by'] == user_id]
+        user_id = users_df.loc[users_df['name'] == selected_user, 'id'].iloc[0]
+        tickets_df = tickets_df.loc[tickets_df['created_by'] == user_id].copy()
+        customercall_df = customercall_df.loc[customercall_df['created_by'] == user_id].copy()
+        ticketcall_df = ticketcall_df.loc[ticketcall_df['created_by'] == user_id].copy()
 
     # Filter data based on date range
-    tickets_df = tickets_df[(tickets_df['created_at'] >= start_date) & (tickets_df['created_at'] <= end_date)]
-    customercall_df = customercall_df[(customercall_df['created_at'] >= start_date) & (customercall_df['created_at'] <= end_date)]
-    ticketcall_df = ticketcall_df[(ticketcall_df['created_at'] >= start_date) & (ticketcall_df['created_at'] <= end_date)]
+    tickets_df = tickets_df.loc[(tickets_df['created_at'] >= start_date) & (tickets_df['created_at'] <= end_date)].copy()
+    customercall_df = customercall_df.loc[(customercall_df['created_at'] >= start_date) & (customercall_df['created_at'] <= end_date)].copy()
+    ticketcall_df = ticketcall_df.loc[(ticketcall_df['created_at'] >= start_date) & (ticketcall_df['created_at'] <= end_date)].copy()
 
     # --- Visualizations ---
 
@@ -68,7 +81,7 @@ try:
         # Calls by Hour of Day
         st.subheader("Calls by Hour of Day")
         if not customercall_df.empty:
-            customercall_df['hour'] = customercall_df['created_at'].dt.hour
+            customercall_df.loc[:, 'hour'] = customercall_df['created_at'].dt.hour
             calls_by_hour = customercall_df['hour'].value_counts().sort_index().reset_index()
             calls_by_hour.columns = ['Hour', 'Number of Calls']
             fig = px.bar(calls_by_hour, x='Hour', y='Number of Calls', title='Peak Call Times')
@@ -92,28 +105,25 @@ try:
 
         # Merge with tickets_df to get customer_id
         ticketcall_df_merged = pd.merge(ticketcall_df, tickets_df[['id', 'customer_id']], left_on='ticket_id', right_on='id', how='left')
-        
-        # Calculate call duration in minutes
-        ticketcall_df_merged['duration_minutes'] = pd.to_numeric(ticketcall_df_merged['call_duration'], errors='coerce').fillna(0) / 60
 
-        # Calls by Hour of Day
-        st.subheader("Calls by Hour of Day")
-        if not ticketcall_df_merged.empty:
+        # Calls by Hour of Day for tickets
+        st.subheader("Ticket Calls by Hour of Day")
+        if not ticketcall_df.empty:
             ticketcall_df_merged['hour'] = ticketcall_df_merged['created_at'].dt.hour
-            calls_by_hour = ticketcall_df_merged['hour'].value_counts().sort_index().reset_index()
-            calls_by_hour.columns = ['Hour', 'Number of Calls']
-            fig = px.bar(calls_by_hour, x='Hour', y='Number of Calls', title='Peak Call Times')
-            st.plotly_chart(fig, use_container_width=True)
+            calls_by_hour_ticket = ticketcall_df_merged['hour'].value_counts().sort_index().reset_index()
+            calls_by_hour_ticket.columns = ['Hour', 'Number of Calls']
+            fig_ticket = px.bar(calls_by_hour_ticket, x='Hour', y='Number of Calls', title='Peak Ticket Call Times')
+            st.plotly_chart(fig_ticket, use_container_width=True)
         else:
             st.info("No ticket call data to display.")
 
-        # 2. Average Ticket Calls per Customer
+        # 2. Average Ticket Calls per Customer by User
         st.subheader("Average Ticket Calls per Customer by User")
-        if not ticketcall_df_merged.empty:
-            avg_calls_per_customer = ticketcall_df_merged.groupby(['created_by', 'customer_id']).size().reset_index(name='num_calls')
-            avg_calls_per_user = avg_calls_per_customer.groupby('created_by')['num_calls'].mean().reset_index(name='avg_calls')
-            avg_calls_per_user = avg_calls_per_user.merge(users_df[['id', 'name']], left_on='created_by', right_on='id')
-            fig_avg_calls = px.bar(avg_calls_per_user, x='name', y='avg_calls', title='Average Ticket Calls per Customer by User')
+        if not ticketcall_df.empty:
+            avg_ticket_calls_per_customer = ticketcall_df_merged.groupby(['created_by', 'customer_id']).size().reset_index(name='num_calls')
+            avg_ticket_calls_per_user = avg_ticket_calls_per_customer.groupby('created_by')['num_calls'].mean().reset_index(name='avg_calls')
+            avg_ticket_calls_per_user = avg_ticket_calls_per_user.merge(users_df[['id', 'name']], left_on='created_by', right_on='id')
+            fig_avg_calls = px.bar(avg_ticket_calls_per_user, x='name', y='avg_calls', title='Average Ticket Calls per Customer by User')
             st.plotly_chart(fig_avg_calls, use_container_width=True)
         else:
             st.info("No ticket call data to display for average calculation.")
