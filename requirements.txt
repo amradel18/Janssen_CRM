@@ -24,3 +24,4 @@ python-dotenv==1.0.0
 
 streamlit-aggrid
 sqlalchemy==2.0.25
+PyMySQL==1.1.0
