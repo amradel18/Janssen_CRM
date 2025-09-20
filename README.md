@@ -145,4 +145,4 @@ When you encounter a token expiration error:
 
 ## License
 
-[Specify License Information]
+MIT License
