@@ -56,7 +56,7 @@ def get_call_analysis_data(dataframes):
     merged_df['customer_name'] = merged_df['customer_name'].fillna('Unknown Customer')
     merged_df['user_name'] = merged_df['user_name'].fillna('Unknown User')
     merged_df['call_type_name'] = merged_df['call_type_name'].fillna('Unknown Type')
-    merged_df['call_category_name'] = merged_df['call_category_name'].fillna('Unknown Category')
+    merged_df['.'] = merged_df['call_category_name'].fillna('Unknown Category')
     merged_df['company_name'] = merged_df['company_name'].fillna('Unknown Company')
     merged_df['governorate_name'] = merged_df['governorate_name'].fillna('Unknown Governorate')
     
@@ -119,8 +119,8 @@ def main():
     st.header("Call Metrics")
     total_calls = filtered_calls.shape[0]
     avg_duration = filtered_calls['call_duration'].mean()
-    inbound_calls = filtered_calls[filtered_calls['call_type_name'] == 'صادر'].shape[0]
-    outbound_calls = total_calls - inbound_calls
+    outbound_calls = filtered_calls[filtered_calls['call_type_name'] == 'صادر'].shape[0]
+    inbound_calls = total_calls - outbound_calls
     avg_calls_per_customer = total_calls / filtered_calls['customer_id'].nunique() if filtered_calls['customer_id'].nunique() > 0 else 0
 
     # Calculate Avg. of Monthly Max Calls
