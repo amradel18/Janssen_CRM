@@ -25,8 +25,9 @@ try:
     tickets_df = dataframes.get('tickets')
     customercall_df = dataframes.get('customercall')
     ticketcall_df = dataframes.get('ticketcall')
+    customers_df = dataframes.get('customers')
 
-    if users_df is None or tickets_df is None or customercall_df is None or ticketcall_df is None:
+    if users_df is None or tickets_df is None or customercall_df is None or ticketcall_df is None or customers_df is None:
         st.error("Failed to load data. Please check the source.")
         st.stop()
 
@@ -35,6 +36,29 @@ try:
     customercall_df['created_at'] = pd.to_datetime(customercall_df['created_at'], errors='coerce')
     ticketcall_df['created_at'] = pd.to_datetime(ticketcall_df['created_at'], errors='coerce')
 
+    # Add company_id to customercall_df from customers_df
+    if 'company_id' in customercall_df.columns:
+        customercall_df = customercall_df.drop('company_id', axis=1)
+    customer_company_info = customers_df[['id', 'company_id']].rename(columns={'id': 'customer_id_ref'})
+    customercall_df = pd.merge(customercall_df, customer_company_info, left_on='customer_id', right_on='customer_id_ref', how='left')
+    if 'customer_id_ref' in customercall_df.columns:
+        customercall_df = customercall_df.drop(columns=['customer_id_ref'])
+
+    # Add company_id to ticketcall_df from tickets_df
+    if 'company_id' in ticketcall_df.columns:
+        ticketcall_df = ticketcall_df.drop('company_id', axis=1)
+    ticket_company_info = tickets_df[['id', 'company_id']].rename(columns={'id': 'ticket_id_ref'})
+    ticketcall_df = pd.merge(ticketcall_df, ticket_company_info, left_on='ticket_id', right_on='ticket_id_ref', how='left')
+    if 'ticket_id_ref' in ticketcall_df.columns:
+        ticketcall_df = ticketcall_df.drop(columns=['ticket_id_ref'])
+
+    # Sidebar filter for company
+    st.sidebar.header("Filter by Company")
+    # Create company mapping
+    company_mapping = {1: "Englander", 2: "Janssen"}
+    company_list = ['All'] + list(company_mapping.values())
+    selected_company = st.sidebar.selectbox('Select Company', company_list)
+    
     # Sidebar filter for users
     st.sidebar.header("Filter by User")
     user_list = ['All'] + users_df['name'].unique().tolist()
@@ -55,6 +79,21 @@ try:
     start_date = pd.to_datetime(start_date)
     end_date = pd.to_datetime(end_date)
 
+    # Filter data based on selected company
+    if selected_company != 'All':
+        # Get company_id from the company name
+        company_id = [k for k, v in company_mapping.items() if v == selected_company][0]
+        
+        # Filter dataframes by company_id
+        tickets_df = tickets_df.loc[tickets_df['company_id'] == company_id].copy()
+        
+        # For customercall and ticketcall, check if company_id exists
+        if 'company_id' in customercall_df.columns:
+            customercall_df = customercall_df.loc[customercall_df['company_id'] == company_id].copy()
+        
+        if 'company_id' in ticketcall_df.columns:
+            ticketcall_df = ticketcall_df.loc[ticketcall_df['company_id'] == company_id].copy()
+    
     # Filter data based on selected user
     if selected_user != 'All':
         user_id = users_df.loc[users_df['name'] == selected_user, 'id'].iloc[0]
@@ -74,6 +113,32 @@ try:
     with tab1:
         st.header("Customer Call Analysis")
 
+        # Donut chart for Inbound vs Outbound calls
+        st.subheader("Inbound vs Outbound Calls")
+        if not customercall_df.empty:
+            # Create a column for call direction based on call_type
+            # Assuming call_type 1 is outbound and 2 is inbound (based on sample data)
+            call_type_counts = customercall_df['call_type'].value_counts().reset_index()
+            call_type_counts.columns = ['Call Type', 'Count']
+            
+            # Map call types to readable names
+            call_type_map = {1: "Outbound", 2: "Inbound"}
+            call_type_counts['Call Direction'] = call_type_counts['Call Type'].map(call_type_map)
+            
+            # Create donut chart
+            fig_call_types = px.pie(
+                call_type_counts, 
+                values='Count', 
+                names='Call Direction',
+                title='Call Distribution by Direction',
+                hole=0.4,  # This makes it a donut chart
+                color_discrete_sequence=px.colors.qualitative.Set2
+            )
+            fig_call_types.update_traces(textposition='inside', textinfo='percent+label')
+            st.plotly_chart(fig_call_types, use_container_width=True)
+        else:
+            st.info("No customer call data to display.")
+            
         # Calls by Hour of Day
         st.subheader("Calls by Hour of Day")
         if not customercall_df.empty:
@@ -101,6 +166,32 @@ try:
 
         # Merge with tickets_df to get customer_id
         ticketcall_df_merged = pd.merge(ticketcall_df, tickets_df[['id', 'customer_id']], left_on='ticket_id', right_on='id', how='left')
+
+        # Donut chart for Inbound vs Outbound ticket calls
+        st.subheader("Inbound vs Outbound Ticket Calls")
+        if not ticketcall_df.empty:
+            # Create a column for call direction based on call_type
+            # Assuming call_type 1 is outbound and 2 is inbound (based on sample data)
+            ticket_call_type_counts = ticketcall_df['call_type'].value_counts().reset_index()
+            ticket_call_type_counts.columns = ['Call Type', 'Count']
+            
+            # Map call types to readable names
+            call_type_map = {1: "Outbound", 2: "Inbound"}
+            ticket_call_type_counts['Call Direction'] = ticket_call_type_counts['Call Type'].map(call_type_map)
+            
+            # Create donut chart
+            fig_ticket_call_types = px.pie(
+                ticket_call_type_counts, 
+                values='Count', 
+                names='Call Direction',
+                title='Ticket Call Distribution by Direction',
+                hole=0.4,  # This makes it a donut chart
+                color_discrete_sequence=px.colors.qualitative.Set2
+            )
+            fig_ticket_call_types.update_traces(textposition='inside', textinfo='percent+label')
+            st.plotly_chart(fig_ticket_call_types, use_container_width=True)
+        else:
+            st.info("No ticket call data to display.")
 
         # Calls by Hour of Day for tickets
         st.subheader("Ticket Calls by Hour of Day")

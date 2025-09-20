@@ -2,20 +2,31 @@
 
 A Streamlit-based Customer Relationship Management (CRM) system for data analysis and visualization.
 
+## Program Objectives
+
+JANSSEN CRM is designed to provide a comprehensive solution for customer relationship management with a focus on data-driven insights. The primary objectives of this application are:
+
+1. **Centralized Customer Data Management**: Consolidate all customer information in one accessible platform
+2. **Enhanced Customer Service**: Track and analyze customer interactions to improve service quality
+3. **Efficient Ticket Management**: Streamline the process of handling customer support tickets
+4. **Performance Analytics**: Provide actionable insights through detailed performance metrics
+5. **Data-Driven Decision Making**: Enable informed business decisions through comprehensive analytics
+6. **Streamlined Workflow**: Improve operational efficiency through integrated tools and processes
+
 ## Project Overview
 
 JANSSEN CRM is a web application built with Streamlit that provides comprehensive customer relationship management capabilities. The application offers various analytical features including customer analysis, call tracking, ticket management, and performance metrics.
 
 ## Features
 
-- **Authentication System**: Secure login functionality
-- **Data Management**: Tools for managing and uploading data
-- **Customer Analysis**: Detailed customer insights and metrics
-- **Call Analysis**: Track and analyze customer calls
-- **Ticket Management**: Monitor and manage support tickets
-- **Action Items**: Track action items and follow-ups
-- **Performance Analysis**: Measure and visualize performance metrics
-- **Google Drive Integration**: Data storage and retrieval using Google Drive API
+- **Authentication System**: Secure login functionality with role-based access control
+- **Data Management**: Tools for managing, uploading, and maintaining data integrity
+- **Customer Analysis**: Detailed customer insights and metrics with segmentation capabilities
+- **Call Analysis**: Track and analyze customer calls with detailed metrics and categorization
+- **Ticket Management**: Monitor and manage support tickets with priority tracking and resolution metrics
+- **Action Items**: Track action items and follow-ups with assignment and deadline management
+- **Performance Analysis**: Measure and visualize performance metrics across teams and individuals
+- **Google Drive Integration**: Data storage and retrieval using Google Drive API for secure cloud-based storage
 
 ## Project Structure
 
@@ -66,16 +77,78 @@ This will start the application with the login page as the entry point.
 
 For a complete list of dependencies, see `requirements.txt`.
 
-## Pages
+## Pages and Their Purposes
 
-- Data Management
-- Customer Analysis
-- Customer Call Analysis
-- Tickets and Calls Analysis
-- Ticket Items
-- Actions Items Analysis
-- Descriptions Analysis
-- Performance Analysis
+### 1. Data Management (1_data_management.py)
+- **Purpose**: Central hub for data import, export, and maintenance
+- **Features**: 
+  - Data upload and validation
+  - Database management tools
+  - Data integrity checks
+  - Export capabilities for reporting
+
+### 2. Customer Analysis (3_Customer_Analysis.py)
+- **Purpose**: Comprehensive analysis of customer data and behavior
+- **Features**:
+  - Customer segmentation
+  - Demographic analysis
+  - Geographic distribution visualization
+  - Customer lifetime value metrics
+  - Trend analysis of customer interactions
+
+### 3. Customer Call Analysis (4_Customer_Call_Analysis.py)
+- **Purpose**: Detailed analysis of customer call interactions
+- **Features**:
+  - Call volume trends
+  - Call duration analysis
+  - Call categorization and reason tracking
+  - Agent performance in call handling
+  - Call outcome analysis
+
+### 4. Tickets and Calls Analysis (5_Tickets_and_Calls_Analysis.py)
+- **Purpose**: Integrated analysis of support tickets and related calls
+- **Features**:
+  - Ticket volume and status tracking
+  - Call-to-ticket ratio analysis
+  - Resolution time metrics
+  - Issue categorization
+  - Correlation between calls and ticket resolution
+
+### 5. Ticket Items (6_Ticket_Items.py)
+- **Purpose**: Detailed management of individual ticket components
+- **Features**:
+  - Item categorization
+  - Priority assignment
+  - Status tracking
+  - Assignment management
+  - Resolution workflow
+
+### 6. Actions Items Analysis (7_Actions_items_Analysis.py)
+- **Purpose**: Track and analyze follow-up actions from customer interactions
+- **Features**:
+  - Action item creation and assignment
+  - Deadline tracking
+  - Completion rate analysis
+  - Performance metrics by assignee
+  - Priority management
+
+### 7. Descriptions Analysis (8_Descriptions_Analysis.py)
+- **Purpose**: Analyze textual data from customer interactions for insights
+- **Features**:
+  - Text analysis of customer feedback
+  - Common issue identification
+  - Sentiment analysis
+  - Keyword extraction
+  - Trend identification in customer communications
+
+### 8. User Performance Analysis (9_Use_Performance_Analysis.py)
+- **Purpose**: Evaluate and track performance metrics for system users
+- **Features**:
+  - Individual performance dashboards
+  - Team performance comparisons
+  - KPI tracking
+  - Productivity metrics
+  - Quality assurance metrics
 
 ## Google Drive Authentication Setup
 

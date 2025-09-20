@@ -13,9 +13,6 @@ from process.data_loader import load_all_data
 from process.data_processor import calculate_ticket_metrics, join_ticket_and_call_data
 from visualize.chart_generator import create_pie_chart, create_multi_metric_row
 
-# Set page config
-st.set_page_config(page_title="Tickets and Calls Analysis", layout="wide")
-
 # Import authentication module
 from auth.authentication import check_authentication
 
@@ -41,12 +38,26 @@ def get_ticket_call_analysis_data(dataframes):
     call_categories_df = call_categories_df.rename(columns={'name': 'call_category_name'})
     governorates_df = governorates_df.rename(columns={'name': 'governorate_name'})
 
-    # Merge with tickets to get customer_id. Suffixes will handle the duplicate 'description' column.
-    merged_df = ticketcall_df.merge(tickets_df[['id', 'customer_id', 'description']], left_on='ticket_id', right_on='id', how='left', suffixes=('_call', '_ticket'))
+    # Rename description to callresult for display purposes
+    ticketcall_df = ticketcall_df.rename(columns={'description': 'callresult'})
+    
+    # Merge with tickets to get customer_id and company_id
+    merged_df = ticketcall_df.merge(tickets_df[['id', 'customer_id', 'description', 'company_id']], left_on='ticket_id', right_on='id', how='left', suffixes=('', '_ticket'))
+    
+    # Ensure company_id is properly transferred from tickets
+    if 'company_id' in merged_df.columns and 'company_id_ticket' not in merged_df.columns:
+        merged_df.rename(columns={'company_id': 'company_id_call'}, inplace=True)
+    
+    if 'company_id' in tickets_df.columns:
+        merged_df['company_id'] = merged_df['company_id_ticket'] if 'company_id_ticket' in merged_df.columns else tickets_df.loc[tickets_df['id'].isin(merged_df['ticket_id']), 'company_id'].values
 
     # Merge with customers to get governorate
-    merged_df = merged_df.merge(customers_df[['id', 'name', 'governomate_id']], left_on='customer_id', right_on='id', how='left', suffixes=('', '_customer'))
+    merged_df = merged_df.merge(customers_df[['id', 'name', 'governomate_id', 'company_id']], left_on='customer_id', right_on='id', how='left', suffixes=('', '_customer'))
     merged_df = merged_df.rename(columns={'name': 'customer_name'})
+    
+    # If company_id is missing, try to get it from customer
+    if 'company_id' not in merged_df.columns or merged_df['company_id'].isna().all():
+        merged_df['company_id'] = merged_df['company_id_customer']
 
     # Merge with governorates
     merged_df = merged_df.merge(governorates_df[['id', 'governorate_name']], left_on='governomate_id', right_on='id', how='left', suffixes=('', '_gov'))
@@ -62,6 +73,13 @@ def get_ticket_call_analysis_data(dataframes):
     merged_df['call_type_name'] = merged_df['call_type_name'].fillna('Unknown Type')
     merged_df['call_category_name'] = merged_df['call_category_name'].fillna('Unknown Category')
     merged_df['governorate_name'] = merged_df['governorate_name'].fillna('Unknown Governorate')
+    
+    # Ensure company_id is available for filtering
+    if 'company_id' not in merged_df.columns:
+        # Try to get company_id from tickets
+        if 'ticket_id' in merged_df.columns and 'company_id' in tickets_df.columns:
+            company_id_map = tickets_df.set_index('id')['company_id'].to_dict()
+            merged_df['company_id'] = merged_df['ticket_id'].map(company_id_map)
 
     # Convert created_at to datetime
     merged_df['created_at'] = pd.to_datetime(merged_df['created_at'], errors='coerce')
@@ -137,18 +155,66 @@ def main():
         start_date = st.date_input("Start Date", min_date, min_value=min_date, max_value=max_date)
         end_date = st.date_input("End Date", max_date, min_value=min_date, max_value=max_date)
         
+        # Company filter
+        st.subheader("Company")
+        company_mapping = {1: "Englander", 2: "Janssen"}
+        company_options = ["All"] + list(company_mapping.values())
+        selected_company = st.selectbox("Select Company", company_options)
+        
         start_datetime = datetime.combine(start_date, datetime.min.time())
         end_datetime = datetime.combine(end_date, datetime.max.time())
 
-    # --- Filter Data based on common date range ---
+    # --- Filter Data based on common date range and company ---
     tickets_analysis_data['created_at_ticket'] = pd.to_datetime(tickets_analysis_data['created_at_ticket'], errors='coerce')
     filtered_tickets_data = tickets_analysis_data[tickets_analysis_data['created_at_ticket'].between(start_datetime, end_datetime)]
 
     calls_analysis_data['created_at'] = pd.to_datetime(calls_analysis_data['created_at'], errors='coerce')
     filtered_calls_data = calls_analysis_data[calls_analysis_data['created_at'].between(start_datetime, end_datetime)]
+    
+    # Apply company filter if selected
+    if selected_company != "All":
+        # Get company_id from the mapping
+        company_id = [k for k, v in company_mapping.items() if v == selected_company][0]
+        
+        # Filter tickets data by company_id
+        if 'company_id' in filtered_tickets_data.columns:
+            filtered_tickets_data = filtered_tickets_data[filtered_tickets_data['company_id'] == company_id]
+        elif 'company_id_ticket' in filtered_tickets_data.columns:
+            filtered_tickets_data = filtered_tickets_data[filtered_tickets_data['company_id_ticket'] == company_id]
+        
+        # Filter calls data by company_id
+        if 'company_id' in filtered_calls_data.columns:
+            filtered_calls_data = filtered_calls_data[filtered_calls_data['company_id'] == company_id]
+        elif 'company_id_call' in filtered_calls_data.columns:
+            filtered_calls_data = filtered_calls_data[filtered_calls_data['company_id_call'] == company_id]
+        
+        # Log the number of records after filtering
+        st.sidebar.write(f"Filtered tickets: {len(filtered_tickets_data)}")
+        st.sidebar.write(f"Filtered calls: {len(filtered_calls_data)}")
+            
+            # Log the number of records after filtering
+        st.sidebar.write(f"Filtered tickets: {len(filtered_tickets_data)}")
+        st.sidebar.write(f"Filtered calls: {len(filtered_calls_data)}")
+            
+    # Ensure proper joining between tickets and calls
+    if not filtered_calls_data.empty and not filtered_tickets_data.empty:
+        # Create a mapping between ticket IDs in both dataframes
+        ticket_id_mapping = {}
+        
+        # Check which columns to use for joining
+        ticket_id_col_tickets = 'id_ticket' if 'id_ticket' in filtered_tickets_data.columns else 'id'
+        ticket_id_col_calls = 'ticket_id' if 'ticket_id' in filtered_calls_data.columns else 'id_ticket'
+        
+        # Create a copy of filtered_calls_data with a standardized ticket_id column
+        if ticket_id_col_calls in filtered_calls_data.columns:
+            filtered_calls_data['_standard_ticket_id'] = filtered_calls_data[ticket_id_col_calls]
+            
+        # Create a copy of filtered_tickets_data with a standardized ticket_id column
+        if ticket_id_col_tickets in filtered_tickets_data.columns:
+            filtered_tickets_data['_standard_ticket_id'] = filtered_tickets_data[ticket_id_col_tickets]
 
     # Dashboard tabs
-    tabs = st.tabs(["Tickets Analysis", "Ticket Calls Analysis"])
+    tabs = st.tabs(["Tickets Analysis", "Calls Analysis"])
     
     with tabs[0]:
         st.header("Tickets Overview")
@@ -234,9 +300,17 @@ def main():
                     # Display ticket details
                     st.write("Ticket Details:")
                     st.dataframe(customer_tickets[['id_ticket', 'status_ticket', 'created_at_ticket', 'description', 'call_count']])
+                    
+                    # Display call details with callresult for each ticket
+                    st.write("Call Details:")
+                    for ticket_id in customer_tickets['id_ticket']:
+                        ticket_calls = filtered_calls_data[filtered_calls_data['ticket_id'] == ticket_id]
+                        if not ticket_calls.empty:
+                            st.write(f"Calls for Ticket #{ticket_id}:")
+                            st.dataframe(ticket_calls[['id', 'created_at', 'call_type_name', 'call_category_name', 'callresult', 'user_name']])
 
-            with st.expander("View Tickets Data"):
-                st.dataframe(unique_tab_filtered_tickets)
+            #with st.expander("View Tickets Data"):
+                #st.dataframe(unique_tab_filtered_tickets)
 
     with tabs[1]:
         st.header("Ticket Calls Overview")
@@ -252,6 +326,11 @@ def main():
                 tab_filtered_calls = tab_filtered_calls[tab_filtered_calls['call_category_name'] == selected_call_category]
             if selected_user != "All":
                 tab_filtered_calls = tab_filtered_calls[tab_filtered_calls['user_name'] == selected_user]
+                
+            # Debug information
+            st.write(f"Number of calls after filtering: {len(tab_filtered_calls)}")
+            if '_standard_ticket_id' in tab_filtered_calls.columns:
+                st.write(f"Unique ticket IDs in calls data: {tab_filtered_calls['_standard_ticket_id'].nunique()}")
         else:
             tab_filtered_calls = filtered_calls_data
 
@@ -347,10 +426,11 @@ def main():
 
                     # Display call details
                     st.write("Call Details:")
-                    st.dataframe(customer_calls[['created_at', 'call_duration', 'call_type_name', 'user_name', 'description_call']])
+                    st.dataframe(customer_calls[['created_at', 'call_duration', 'call_type_name', 'user_name', 'callresult']])
 
             with st.expander("View Ticket Calls Data"):
                 st.dataframe(tab_filtered_calls)
+
 
 # Run the app
 if __name__ == "__main__":

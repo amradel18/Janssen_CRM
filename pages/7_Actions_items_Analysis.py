@@ -433,7 +433,21 @@ def main():
         else:
             st.info("No data for Top 10 customers.")
 
-        st.dataframe(filtered_change_another)
+        # Instead of showing full raw data, provide a download button and show only top 5 rows as preview
+        st.subheader("Data Preview (Top 5 Rows)")
+        st.dataframe(filtered_change_another.head(5))
+        
+        # Add download button for full data
+        if not filtered_change_another.empty:
+            csv = filtered_change_another.to_csv(index=False)
+            st.download_button(
+                label="Download Full Data as CSV",
+                data=csv,
+                file_name="change_another_data.csv",
+                mime="text/csv",
+            )
+            st.info("Note: Only showing top 5 rows as preview. Use the download button to get the complete dataset.")
+        
     with tab2:
         st.subheader("Maintenance KPIs")
         kpis_maintenance = calculate_kpis(filtered_maintenance, "Maintenance")
@@ -550,7 +564,20 @@ def main():
         else:
             st.info("No data for Top 10 customers.")
 
-        st.dataframe(filtered_maintenance)
+        # Instead of showing full raw data, provide a download button and show only top 5 rows as preview
+        st.subheader("Data Preview (Top 5 Rows)")
+        st.dataframe(filtered_maintenance.head(5))
+        
+        # Add download button for full data
+        if not filtered_maintenance.empty:
+            csv = filtered_maintenance.to_csv(index=False)
+            st.download_button(
+                label="Download Full Data as CSV",
+                data=csv,
+                file_name="maintenance_data.csv",
+                mime="text/csv",
+            )
+            st.info("Note: Only showing top 5 rows as preview. Use the download button to get the complete dataset.")
     with tab3:
         st.subheader("Change Same KPIs")
         kpis_change_same = calculate_kpis(filtered_change_same, "Change Same")
@@ -672,7 +699,20 @@ def main():
         else:
             st.info("No data for Top 10 customers.")
 
-        st.dataframe(filtered_change_same)
+        # Instead of showing full raw data, provide a download button and show only top 5 rows as preview
+        st.subheader("Data Preview (Top 5 Rows)")
+        st.dataframe(filtered_change_same.head(5))
+        
+        # Add download button for full data
+        if not filtered_change_same.empty:
+            csv = filtered_change_same.to_csv(index=False)
+            st.download_button(
+                label="Download Full Data as CSV",
+                data=csv,
+                file_name="change_same_data.csv",
+                mime="text/csv",
+            )
+            st.info("Note: Only showing top 5 rows as preview. Use the download button to get the complete dataset.")
 
 if __name__ == "__main__":
     main()

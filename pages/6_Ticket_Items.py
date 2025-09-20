@@ -297,13 +297,15 @@ def main():
             st.plotly_chart(fig_approval, use_container_width=True)
 
 
-        # Display filtered data in a table
-        st.subheader("All Filtered Ticket Items")
+        # Display limited data preview with download option
+        st.subheader("Filtered Ticket Items (Top 10 Preview)")
         display_cols = [
             'ticket_id', 'product_name', 'product_size', 'request_reason_detail', 'name_reason', 
             'name_category', 'name_user', 'created_at'
         ]
-        st.dataframe(filtered_df[display_cols].rename(columns={
+        
+        # Create renamed dataframe for display and download
+        display_df = filtered_df[display_cols].rename(columns={
             'ticket_id': 'Ticket ID',
             'product_name': 'Product',
             'product_size': 'Size',
@@ -312,7 +314,21 @@ def main():
             'name_category': 'Category',
             'name_user': 'Created By',
             'created_at': 'Date'
-        }))
+        })
+        
+        # Show only top 10 rows
+        st.dataframe(display_df.head(10))
+        
+        # Add download button for full data
+        if not filtered_df.empty:
+            csv = display_df.to_csv(index=False)
+            st.download_button(
+                label="Download Full Data as CSV",
+                data=csv,
+                file_name="ticket_items_data.csv",
+                mime="text/csv",
+            )
+            st.info(f"Note: Only showing top 10 rows as preview. Full dataset contains {len(display_df)} rows. Use the download button to get the complete dataset.")
 
         # Top 10 Customers by Ticket Items
         st.header("Top 10 Customers by Item Count")
@@ -352,27 +368,36 @@ def main():
                 st.write(f"**Total Items:** {row['Item Count']}")
                 st.write(f"**Total Tickets:** {row['Ticket Count']}")
                 
-                # Display tickets for the customer
-                st.write("**Tickets:**")
+                # Display tickets for the customer (limited to 5)
+                st.write("**Tickets (Top 5):**")
                 customer_tickets = filtered_df[filtered_df['customer_name'] == customer_name][[
                     'ticket_id', 'created_at', 'name_category', 'name_reason', 'product_name', 'product_size'
                 ]].drop_duplicates()
-                st.dataframe(customer_tickets.rename(columns={
+                
+                # Show only top 5 tickets
+                display_tickets = customer_tickets.rename(columns={
                     'ticket_id': 'Ticket ID',
                     'created_at': 'Date',
                     'name_category': 'Category',
                     'name_reason': 'Reason',
                     'product_name': 'Product',
                     'product_size': 'Size'
-                }))
+                })
+                
+                st.dataframe(display_tickets.head(5))
+                
+                # Show count of additional tickets if any
+                if len(customer_tickets) > 5:
+                    st.info(f"{len(customer_tickets) - 5} more tickets not shown. Download the full data for complete information.")
 
-                # Display calls for the customer's tickets
-                st.write("**Calls:**")
+                # Display calls for the customer's tickets (limited to 5)
+                st.write("**Calls (Top 5):**")
                 customer_ticket_ids = filtered_df[filtered_df['customer_name'] == customer_name]['ticket_id'].unique()
                 if not processed_calls_df.empty and len(customer_ticket_ids) > 0:
                     customer_calls = processed_calls_df[processed_calls_df['ticket_id'].isin(customer_ticket_ids)]
                     if not customer_calls.empty:
-                        st.dataframe(customer_calls[[
+                        # Create display dataframe with renamed columns
+                        display_calls = customer_calls[[
                             'ticket_id', 'created_at', 'call_duration', 'call_type_name', 'user_name', 'description'
                         ]].rename(columns={
                             'ticket_id': 'Ticket ID',
@@ -381,7 +406,23 @@ def main():
                             'call_type_name': 'Call Type',
                             'user_name': 'Agent',
                             'description': 'Description'
-                        }))
+                        })
+                        
+                        # Show only top 5 calls
+                        st.dataframe(display_calls.head(5))
+                        
+                        # Show count of additional calls if any
+                        if len(customer_calls) > 5:
+                            st.info(f"{len(customer_calls) - 5} more calls not shown.")
+                            
+                        # Add download button for customer's calls
+                        csv = display_calls.to_csv(index=False)
+                        st.download_button(
+                            label=f"Download All Calls for {customer_name}",
+                            data=csv,
+                            file_name=f"calls_{customer_name.replace(' ', '_')}.csv",
+                            mime="text/csv",
+                        )
                     else:
                         st.info("No calls found for this customer's tickets.")
                 else:
