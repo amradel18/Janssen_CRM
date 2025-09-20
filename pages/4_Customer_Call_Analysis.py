@@ -118,6 +118,11 @@ def main():
     # --- Metrics ---
     st.header("Call Metrics")
     total_calls = filtered_calls.shape[0]
+    
+    # معالجة عمود call_duration للتأكد من أنه رقمي
+    filtered_calls['call_duration'] = pd.to_numeric(filtered_calls['call_duration'], errors='coerce')
+    filtered_calls['call_duration'] = filtered_calls['call_duration'].fillna(0)
+    
     avg_duration = filtered_calls['call_duration'].mean()
     outbound_calls = filtered_calls[filtered_calls['call_type_name'] == 'صادر'].shape[0]
     inbound_calls = total_calls - outbound_calls

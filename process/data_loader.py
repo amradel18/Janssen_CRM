@@ -3,67 +3,200 @@ import pandas as pd
 import os
 import sys
 from datetime import datetime
+from sqlalchemy import create_engine, text
+from urllib.parse import quote_plus
+from dotenv import load_dotenv
 
 # Add the project root to the path
 sys.path.append(os.path.abspath(os.path.dirname(os.path.dirname(__file__))))
 
-# Import the load functions
-from lode_data.load_data_in_drive import load_tables_from_drive, read_csv_from_drive_by_name, get_drive_service
+# Load environment variables from .env file
+load_dotenv()
 
 company_mapping = {1: "Englander", 2: "Janssen"}
 
+def _has_streamlit_secrets() -> bool:
+    home_path = os.path.join(os.path.expanduser("~"), ".streamlit", "secrets.toml")
+    project_root = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+    project_path = os.path.join(project_root, ".streamlit", "secrets.toml")
+    return os.path.exists(home_path) or os.path.exists(project_path)
+
+
+def _get_env(var_name: str, default = None):
+    return os.getenv(var_name, default)
+
+
+def _get_secret(section: str, key: str, env_var = None, default = None):
+    """Read from Streamlit secrets if present (works on Streamlit Cloud even without a local secrets.toml file),
+    otherwise fall back to environment variables, then default."""
+    # Try Streamlit Secrets first (available on Streamlit Cloud even without a local secrets.toml file)
+    try:
+        val = st.secrets[section][key]
+        if val is not None and str(val) != "":
+            return val
+    except Exception:
+        pass
+    # Fall back to env var if provided
+    if env_var:
+        env_val = _get_env(env_var, None)
+        if env_val is not None and env_val != "":
+            return env_val
+    return default
+
+
+def _get_db_config() -> dict:
+    host = _get_secret("db", "host", env_var="DB_HOST", default="localhost")
+    port = int(_get_secret("db", "port", env_var="DB_PORT", default="3306"))
+    user = _get_secret("db", "user", env_var="DB_USER", default="root")
+    password = _get_secret("db", "password", env_var="DB_PASSWORD", default="")
+    database = _get_secret("db", "database", env_var="DB_DATABASE", default="janssencrm")
+    autocommit = str(_get_secret("db", "autocommit", env_var="DB_AUTOCOMMIT", default="true")).lower() in ("1", "true", "yes")
+    return {
+        'host': host,
+        'port': port,
+        'user': user,
+        'password': password,
+        'database': database,
+        'autocommit': autocommit,
+    }
+
+DB_CONFIG = _get_db_config()
+
+def get_database_connection():
+    """Return a SQLAlchemy engine for the database."""
+    password_encoded = quote_plus(DB_CONFIG['password'])
+    connection_string = f"mysql+pymysql://{DB_CONFIG['user']}:{password_encoded}@{DB_CONFIG['host']}:{DB_CONFIG['port']}/janssencrm"
+    return create_engine(connection_string, connect_args={'connect_timeout': 20})
+
+@st.cache_data(show_spinner=False, ttl=600)
+def cached_query(sql: str, params = None, database_name: str = 'janssencrm') -> pd.DataFrame:
+    """Execute a SQL query with optional params and cache the result for faster reloads."""
+    engine = get_database_connection()
+    return pd.read_sql(sql, con=engine, params=params)
+
+
+@st.cache_data(show_spinner=False, ttl=600)
+def cached_table_query(table_name: str, database_name: str = 'janssencrm', force_reload: bool = False) -> pd.DataFrame:
+    """Load an entire table from the database with caching.
+    
+    This function first checks if the table is already loaded in session_state.
+    If it is and force_reload is False, it returns the cached version. 
+    Otherwise, it loads from the database.
+    
+    Args:
+        table_name: Name of the table to load
+        database_name: Database name (default: 'janssencrm')
+        force_reload: If True, reload from database even if cached (default: False)
+    """
+    # Check if we already have this table loaded in session state and not forcing reload
+    if not force_reload and 'loaded_tables' in st.session_state and table_name in st.session_state.loaded_tables:
+        return st.session_state.loaded_tables[table_name]
+    
+    # If not in session state or forcing reload, load from database
+    engine = get_database_connection()
+    df = pd.read_sql(f"SELECT * FROM {database_name}.{table_name}", con=engine)
+    
+    # Store in session state for future use
+    if 'loaded_tables' not in st.session_state:
+        st.session_state.loaded_tables = {}
+    
+    st.session_state.loaded_tables[table_name] = df
+    
+    return df
+
 def load_data(table_name, cache_key=None):
     """
-    Loads a single table from Google Drive.
+    Loads a single table directly from the database.
     """
-    service = get_drive_service()
-    df = read_csv_from_drive_by_name(f"{table_name}.csv", _service=service, cache_key=cache_key)
-    
-    # Process dataframe to fix common issues
-    processed_df = df.copy()
-    date_columns = [
-        'date', 'created_at', 'updated_at', 'deleted_at',
-        'call_date', 'ticket_date', 'request_date', 'pull_date', 'delivery_date'
-    ]
-    
-    for col in date_columns:
-        if col in processed_df.columns:
-            processed_df[col] = pd.to_datetime(processed_df[col], errors='coerce')
-            
-    return processed_df
+    try:
+        # Use cached query for better performance
+        df = cached_table_query(table_name)
+        
+        # Process dataframe to fix common issues
+        processed_df = df.copy()
+        date_columns = [
+            'date', 'created_at', 'updated_at', 'deleted_at',
+            'call_date', 'ticket_date', 'request_date', 'pull_date', 'delivery_date'
+        ]
+        
+        for col in date_columns:
+            if col in processed_df.columns:
+                processed_df[col] = pd.to_datetime(processed_df[col], errors='coerce')
+                
+        return processed_df
+    except Exception as e:
+        st.error(f"خطأ في تحميل جدول {table_name}: {str(e)}")
+        return pd.DataFrame()
 
 def load_all_data(force_reload=False, cache_key=None):
     """
-    Centralized function to load all data once and store in session state.
+    Centralized function to load all data directly from the database.
     Returns a dictionary of all dataframes.
+    
+    This function checks if data is already loaded in session_state to avoid
+    reloading data unnecessarily when navigating between pages.
     """
-    # Check if data is already loaded
-    if not force_reload and 'all_data_loaded' in st.session_state and st.session_state.all_data_loaded:
-        return st.session_state.dataframes
-    
-    # Define all tables to load
-    all_tables = [
-        'call_categories', 'call_types', 'cities', 'customer_phones',
-        'customers', 'governorates', 'product_info',
-        'request_reasons', 'ticket_categories', 'ticket_item_change_another',
-        'ticket_item_change_same', 'ticket_item_maintenance', 'ticket_items',
-        'ticketcall', 'tickets', 'users', 'customercall'
-    ]
-    
-    # Note: 
-    # - 'calls' table doesn't exist, using 'ticketcall' instead
-    
-    # Load all tables
-    dataframes = load_tables_from_drive(all_tables, cache_key=cache_key)
-    
-    # Process dataframes to fix common issues
-    processed_dataframes = process_dataframes(dataframes)
-    
-    # Store in session state
-    st.session_state.dataframes = processed_dataframes
-    st.session_state.all_data_loaded = True
-    
-    return processed_dataframes
+    try:
+        # Check if data is already loaded and we're not forcing a reload
+        if not force_reload and 'all_data_loaded' in st.session_state and st.session_state.all_data_loaded:
+            if 'dataframes' in st.session_state:
+                print("✅ Using already loaded data from session state")
+                return st.session_state.dataframes
+            elif 'loaded_tables' in st.session_state:
+                print("✅ Using already loaded tables from session state")
+                return st.session_state.loaded_tables
+        
+        # Define all tables to load
+        all_tables = [
+            'call_categories', 'call_types', 'cities', 'customer_phones',
+            'customers', 'governorates', 'product_info',
+            'request_reasons', 'ticket_categories', 'ticket_item_change_another',
+            'ticket_item_change_same', 'ticket_item_maintenance', 'ticket_items',
+            'ticketcall', 'tickets', 'users', 'customercall'
+        ]
+        
+        # Check if we already have loaded_tables in session state
+        if not force_reload and 'loaded_tables' in st.session_state:
+            # Check which tables are already loaded
+            missing_tables = [table for table in all_tables if table not in st.session_state.loaded_tables]
+            
+            if not missing_tables:  # All tables are already loaded
+                print("✅ All tables already loaded in session state")
+                st.session_state.all_data_loaded = True
+                return st.session_state.loaded_tables
+            
+            # Only load missing tables
+            print(f"⚠️ Loading {len(missing_tables)} missing tables")
+            all_tables = missing_tables
+        
+        # Initialize loaded_tables if not exists
+        if 'loaded_tables' not in st.session_state:
+            st.session_state.loaded_tables = {}
+        
+        # Load tables using cached_table_query (which now checks session state first)
+        for table in all_tables:
+            try:
+                st.session_state.loaded_tables[table] = cached_table_query(table, force_reload=force_reload)
+                print(f"✅ Loaded table: {table}")
+            except Exception as e:
+                print(f"❌ Error loading table {table}: {str(e)}")
+                st.session_state.loaded_tables[table] = pd.DataFrame()
+        
+        # Process dataframes to fix common issues
+        processed_dataframes = process_dataframes(st.session_state.loaded_tables)
+        
+        # Store processed dataframes back in session state
+        st.session_state.loaded_tables = processed_dataframes
+        st.session_state.dataframes = processed_dataframes  # For backward compatibility
+        st.session_state.all_data_loaded = True
+        st.session_state.last_load_time = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+        
+        return processed_dataframes
+    except Exception as e:
+        st.error(f"Error loading data from database: {str(e)}")
+        
+        # Return empty data to prevent further errors
+        return {}
 
 def process_dataframes(dataframes):
     """
@@ -86,6 +219,19 @@ def process_dataframes(dataframes):
         for col in date_columns:
             if col in processed_df.columns:
                 processed_df[col] = pd.to_datetime(processed_df[col], errors='coerce')
+        
+        # Special handling for call_duration column
+        if 'call_duration' in processed_df.columns:
+            try:
+                # Try to convert to numeric, replace invalid values with NaN
+                processed_df['call_duration'] = pd.to_numeric(processed_df['call_duration'], errors='coerce')
+                
+                # Replace NaN with 0 or another default value
+                processed_df['call_duration'] = processed_df['call_duration'].fillna(0)
+            except Exception as e:
+                print(f"Error processing call_duration column: {str(e)}")
+                # If conversion fails completely, create a new column with zeros
+                processed_df['call_duration'] = 0
         
         # Store the processed dataframe
         processed[key] = processed_df

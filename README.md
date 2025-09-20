@@ -15,6 +15,7 @@ JANSSEN CRM is a web application built with Streamlit that provides comprehensiv
 - **Ticket Management**: Monitor and manage support tickets
 - **Action Items**: Track action items and follow-ups
 - **Performance Analysis**: Measure and visualize performance metrics
+- **Google Drive Integration**: Data storage and retrieval using Google Drive API
 
 ## Project Structure
 
@@ -75,6 +76,72 @@ For a complete list of dependencies, see `requirements.txt`.
 - Actions Items Analysis
 - Descriptions Analysis
 - Performance Analysis
+
+## Google Drive Authentication Setup
+
+This application uses Google Drive API for data storage and retrieval. When you encounter the error `invalid_grant: Token has been expired or revoked`, follow these steps to refresh your authentication:
+
+### Setting Up Google Drive API Credentials
+
+1. Go to the [Google Cloud Console](https://console.cloud.google.com/)
+2. Create a new project or select an existing one
+3. Enable the Google Drive API for your project
+4. Create OAuth 2.0 credentials (Client ID and Client Secret)
+5. Set up the OAuth consent screen with appropriate scopes (`https://www.googleapis.com/auth/drive`)
+
+### Configuring Authentication in the Application
+
+Store your Google API credentials in one of these locations:
+
+1. **Environment Variables** (recommended for local development):
+   Create a `.env` file in the project root with:
+   ```
+   GOOGLE_CLIENT_ID=your_client_id
+   GOOGLE_CLIENT_SECRET=your_client_secret
+   GOOGLE_TOKEN=your_access_token
+   GOOGLE_REFRESH_TOKEN=your_refresh_token
+   GOOGLE_TOKEN_URI=https://oauth2.googleapis.com/token
+   DRIVE_FOLDER_ID=your_drive_folder_id
+   ```
+
+2. **Streamlit Secrets** (recommended for deployment):
+   Create a `.streamlit/secrets.toml` file with:
+   ```toml
+   [google]
+   client_id = "your_client_id"
+   client_secret = "your_client_secret"
+   token = "your_access_token"
+   refresh_token = "your_refresh_token"
+   token_uri = "https://oauth2.googleapis.com/token"
+   
+   [drive]
+   folder_id = "your_drive_folder_id"
+   ```
+
+### Refreshing Expired Tokens
+
+When you encounter a token expiration error:
+
+1. Generate a new access token using your refresh token:
+   - Use the [OAuth 2.0 Playground](https://developers.google.com/oauthplayground/)
+   - Configure it with your Client ID and Client Secret
+   - Select the Drive API v3 scope
+   - Exchange authorization code for tokens
+   - Copy the new access token
+
+2. Update your credentials:
+   - Replace the expired `GOOGLE_TOKEN` in your `.env` file or
+   - Update the `token` value in `.streamlit/secrets.toml`
+
+3. Restart the application
+
+### Troubleshooting Authentication Issues
+
+- Ensure all required credentials are provided
+- Verify the refresh token is valid and has not been revoked
+- Check that the correct scopes are configured
+- Confirm the Drive folder ID exists and is accessible
+- Clear the application cache from the Data Management page if needed
 
 ## License
 

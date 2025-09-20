@@ -9,8 +9,7 @@ sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), '..')))
 
 # Import the authentication module
 from auth.authentication import check_authentication
-from lode_data.load_database_and_upload_drive import export_incremental_tables_to_drive
-from process.data_loader import load_all_data
+from process.data_loader import cached_table_query, load_all_data
 
 # Set page config
 st.set_page_config(page_title="CRM Data Management", layout="wide")
@@ -35,6 +34,10 @@ st.markdown("""
         background-color: #1E3A8A;
         color: white;
     }
+    .table-container {
+        margin-top: 1rem;
+        margin-bottom: 1rem;
+    }
 </style>
 """, unsafe_allow_html=True)
 
@@ -49,81 +52,132 @@ st.sidebar.title("Navigation")
 if st.sidebar.button("Back to Dashboard", key="back_to_dashboard_btn"):
     st.switch_page("pages/1_dashboard.py")
 
+# Define table names
+TABLE_NAMES = [
+    "call_categories", "call_types", "cities", "companies", "customer_phones",
+    "customers", "governorates", "product_info", "request_reasons", 'customercall',
+    "ticket_categories", "ticket_item_change_another", "ticket_item_change_same",
+    "ticket_item_maintenance", "ticket_items", "ticketcall", "tickets", "users"
+]
+
 # Data update section
-st.header("Database to Google Drive Sync")
+st.header("Load Data from Database")
 
 with st.container():
     st.markdown("<div class='data-card'>", unsafe_allow_html=True)
     
-    st.write("This tool synchronizes data from the MySQL database to Google Drive.")
-    st.write("It will update all tables incrementally, adding only new records since the last sync.")
+    st.write("This tool loads data directly from the MySQL database and stores it in the application memory for all pages to use.")
     
-    # Display last sync time if available
-    if 'last_sync_time' in st.session_state:
-        st.info(f"Last synchronized: {st.session_state.last_sync_time}")
-    
-    # Sync button with confirmation
-    if st.button("Synchronize Data", key="sync_data_btn"):
-        with st.spinner("Connecting to database and syncing data to Google Drive..."):
-            try:
-                # Call the export function
-                result = export_incremental_tables_to_drive()
-                
-                if result:
-                    # Create a DataFrame to display results
-                    results_data = []
-                    for table, info in result.items():
-                        if table == "error":
-                            continue
-                        results_data.append({
-                            "Table": table,
-                            "New Records": info.get('new_rows', 0) if isinstance(info, dict) else 0,
-                            "Status": "✅ Success" if isinstance(info, dict) and 'file_id' in info else "❌ Failed"
-                        })
+    # Check if data is already loaded
+    if 'all_data_loaded' in st.session_state and st.session_state.all_data_loaded:
+        st.success("✅ Data is already loaded and available to all pages!")
+        
+        # Display last load time if available
+        if 'last_load_time' in st.session_state:
+            st.info(f"Last loaded: {st.session_state.last_load_time}")
+            
+        # Show reload button
+        if st.button("Reload Data", key="reload_data_btn"):
+            with st.spinner("Reloading data from database..."):
+                 try:
+                     # Import required modules
+                     from process.data_loader import load_all_data
+                     from datetime import datetime
+                     
+                     # Force reload data from database
+                     load_all_data(force_reload=True)
+                     
+                     # Mark data as loaded
+                     st.session_state.all_data_loaded = True
+                     
+                     # Record sync time
+                     current_time = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+                     st.session_state.last_sync_time = current_time
+                     st.session_state.last_load_time = current_time
+                     
+                     st.success("Data reloaded successfully and available to all pages!")
+                     
+                     # Force rerun to update the UI
+                     st.experimental_rerun()
+                     
+                 except Exception as e:
+                     st.error(f"Error reloading data: {str(e)}")
+                     st.error("Please check your database connection and try again.")
+    else:
+        # Display last sync time if available
+        if 'last_sync_time' in st.session_state:
+            st.info(f"Last update: {st.session_state.last_sync_time}")
+        
+        # Initial load button
+        if st.button("Load Data", key="sync_data_btn"):
+            with st.spinner("Connecting to database and loading data..."):
+                try:
+                    # Load data from database
+                    from process.data_loader import load_all_data
+                    load_all_data()
                     
-                    results_df = pd.DataFrame(results_data) if results_data else pd.DataFrame(columns=["Table", "New Records", "Status"])
+                    # Mark data as loaded
+                    st.session_state.all_data_loaded = True
                     
-                    # Store sync time
-                    st.session_state.last_sync_time = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
-                    st.session_state.last_sync_results = results_df
-                    if not results_df.empty:
-                        st.dataframe(results_df)
+                    # Record sync time
+                    current_time = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+                    st.session_state.last_sync_time = current_time
+                    st.session_state.last_load_time = current_time
                     
-                    # If a top-level error exists, show it prominently
-                    if isinstance(result, dict) and 'error' in result:
-                        st.error(f"❌ {result['error']}")
+                    st.success("Data loaded successfully and available to all pages!")
                     
-                    # Decide success/failure message
-                    if isinstance(result, dict) and any(isinstance(v, dict) and 'file_id' in v for v in result.values()):
-                        st.success(f"Synchronization completed! Updated {sum(1 for v in result.values() if isinstance(v, dict) and 'file_id' in v)} tables.")
-                    else:
-                        st.error("Synchronization failed. Please check the logs and errors above.")
-
-                else:
-                    st.error("Synchronization failed. Please check the logs for details.")
-            except Exception as e:
-                st.error(f"❌ Error during synchronization: {str(e)}")
-                print(f"❌ Error during synchronization: {str(e)}")
-
-    # Display previous results if available
-
-
+                    # Force rerun to update the UI
+                    st.experimental_rerun()
+                    
+                except Exception as e:
+                     st.error(f"❌ Error loading data: {str(e)}")
+                     print(f"❌ Error loading data: {str(e)}")
+                     st.error("Please check your database connection and try again.")
     
     st.markdown("</div>", unsafe_allow_html=True)
+
+# Display loaded tables information
+if 'loaded_tables' in st.session_state and st.session_state.loaded_tables:
+    st.header("Loaded Tables Information")
+    
+    # Get current user
+    current_user = st.session_state.get('username', 'Unknown User')
+    
+    # Create a list to store table loading information
+    table_loading_info = []
+    
+    # Collect information about loaded tables
+    for table_name, df in st.session_state.loaded_tables.items():
+        table_loading_info.append({
+            "Table Name": table_name,
+            "Loaded By": current_user,
+            "Load Time": st.session_state.get('last_load_time', st.session_state.get('last_sync_time', 'Unknown')),
+            "Record Count": len(df)
+        })
+    
+    # Create a DataFrame with the loading information
+    loading_info_df = pd.DataFrame(table_loading_info)
+    
+    # Display the loading information
+    st.write("### Tables Loaded in Current Session")
+    st.dataframe(loading_info_df, use_container_width=True)
+    
+    # Add information about data sharing
+    st.success("✅ These tables are loaded in memory and shared across all pages!")
 
 # Cache management section
 st.header("Cache Management")
 with st.container():
     st.markdown("<div class='data-card'>", unsafe_allow_html=True)
-    st.write("If you have updated the data files in Google Drive directly, you may need to clear the cache to see the changes.")
+    st.write("If you've updated data in the database, you may need to clear the cache to see the changes.")
     if st.button("Clear Cache and Reload Data", key="clear_cache_btn"):
         with st.spinner("Clearing cache and reloading all data..."):
             st.cache_data.clear()
             st.cache_resource.clear()
-            if 'dataframes' in st.session_state:
-                del st.session_state['dataframes']
+            if 'loaded_tables' in st.session_state:
+                del st.session_state.loaded_tables
             if 'all_data_loaded' in st.session_state:
-                del st.session_state['all_data_loaded']
+                del st.session_state.all_data_loaded
             
             # Generate a unique cache key to bust the cache
             cache_key = datetime.now().timestamp()
@@ -138,15 +192,13 @@ with st.container():
 with st.expander("Data Management Tips"):
     st.markdown("""
     ### Best Practices
-    - Run synchronization regularly to keep Google Drive data up to date
-    - Ensure database connection is stable before syncing
-    - Large tables may take longer to synchronize
-    - The process is incremental, so only new records are added
+    - Load data regularly to keep information up-to-date
+    - Ensure database connection is stable before loading
+    - Large tables may take longer to load
     
     ### Troubleshooting
-    - If sync fails, check database connection settings
-    - Verify Google Drive API credentials are valid
-    - Check network connectivity
+    - If loading fails, check database connection settings
+    - Verify network connectivity
     - Review logs for detailed error messages
     """)
 

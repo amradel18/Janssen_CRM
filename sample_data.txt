@@ -1,0 +1,532 @@
+call_categories
+{
+  "id": 1,
+  "name": "ابلاغ نتيجة تقرير",
+  "created_by": 0,
+  "created_at": "2025-09-02 14:52:23",
+  "updated_at": "2025-09-02 14:52:23",
+  "company_id": 0
+}
+call_types
+{
+  "id": 1,
+  "name": "صادر",
+  "created_at": "2025-09-02 11:52:22",
+  "updated_at": "2025-09-02 11:52:22"
+}
+cities
+{
+  "id": 1,
+  "name": "العبور",
+  "governorate_id": 1
+}
+customer_phones
+{
+  "id": 1,
+  "company_id": 0,
+  "customer_id": 1,
+  "phone": "01200872019",
+  "phone_type": 0,
+  "created_by": 0,
+  "created_at": "2025-09-02 14:53:38",
+  "updated_at": "2025-09-02 14:53:38"
+}
+customers
+{
+  "id": 1,
+  "company_id": 1,
+  "name": "ايمان حسين",
+  "governomate_id": 2,
+  "city_id": 46,
+  "address": "القاهرة-مدينة نصر-7شارع -عصمت منصور-المنطقه الثامنه-متفرع محمد مقلد-",
+  "notes": null,
+  "created_by": 1,
+  "created_at": "2024-10-31 14:05:41",
+  "updated_at": "2024-10-31 14:05:41"
+}
+customercall
+id	,company_id,	customer_id,	call_type,	category_id,	description,	call_notes,	call_duration,	created_by,	created_at,	updated_at
+1,	0,	1,	1,	1,	تم ابلاغ العميل نتيجه التقرير والعميل وضح ان المرتبه لسه فى الضمان وتم ابلاغ العميل تفاصيل الضمان والعميل غير موافق على التفاصيل وتم التوضيح ان هو هيتواصل معانا يوم السبت والعمي
+
+governorates
+{
+  "id": 1,
+  "name": "القليوبية"
+}
+product_info
+{
+  "id": 1,
+  "company_id": 0,
+  "product_name": "Unknown Product",
+  "created_by": 0,
+  "created_at": "2025-09-02 14:54:07",
+  "updated_at": "2025-09-02 14:54:07"
+}
+request_reasons
+{
+  "id": 1,
+  "name": "هبوط",
+  "created_by": 0,
+  "created_at": "2025-09-02 14:54:07",
+  "updated_at": "2025-09-02 14:54:07",
+  "company_id": 0
+}
+ticket_categories
+{
+  "id": 1,
+  "name": "طلب صيانه",
+  "created_by": 0,
+  "created_at": "2025-09-02 14:54:34",
+  "updated_at": "2025-09-02 14:54:34",
+  "company_id": 0
+}
+ticket_item_change_another
+{
+  "ticket_item_id": 20,
+  "product_id": 2,
+  "product_size": "Standard",
+  "cost": 0,
+  "client_approval": 0,
+  "refusal_reason": null,
+  "pulled": 0,
+  "pull_date": null,
+  "delivered": 0,
+  "delivery_date": null,
+  "created_by": 0,
+  "created_at": "2024-11-02 13:51:09",
+  "updated_at": "2024-11-02 13:51:09",
+  "company_id": 0
+}
+ticket_item_change_same
+{
+  "ticket_item_id": 6,
+  "product_id": 5,
+  "product_size": "190*120*20",
+  "cost": 400,
+  "client_approval": 1,
+  "refusal_reason": null,
+  "pulled": 0,
+  "pull_date": null,
+  "delivered": 1,
+  "delivery_date": null,
+  "created_by": 0,
+  "created_at": "2024-11-02 10:08:02",
+  "updated_at": "2024-11-02 10:08:02",
+  "company_id": 0
+}
+ticket_item_maintenance
+{
+  "ticket_item_id": 4,
+  "maintenance_steps": "سحب وتغير القماش",
+  "maintenance_cost": 1450,
+  "client_approval": 1,
+  "refusal_reason": null,
+  "pulled": 0,
+  "pull_date": null,
+  "delivered": 0,
+  "delivery_date": null,
+  "created_by": 0,
+  "created_at": "2024-11-02 09:01:02",
+  "updated_at": "2024-11-02 09:01:02",
+  "company_id": 0
+}
+ticket_items
+{
+  "id": 1,
+  "company_id": 0,
+  "ticket_id": 1,
+  "product_id": 1,
+  "product_size": "0*0*0",
+  "quantity": 1,
+  "purchase_date": "2024-10-18",
+  "purchase_location": "معرض المصنع",
+  "request_reason_id": 1,
+  "request_reason_detail": "هبوط بالمرتبة فى المنتصف",
+  "inspected": 0,
+  "inspection_date": null,
+  "inspection_result": null,
+  "client_approval": 0,
+  "created_by": 0,
+  "created_at": "2024-11-02 07:55:39",
+  "updated_at": "2024-11-02 07:55:39"
+}
+ticketcall
+{
+  "id": 1,
+  "company_id": 0,
+  "ticket_id": 1,
+  "call_type": 2,
+  "call_cat_id": 2,
+  "description": "هيتم عمل معاينه و فى انتظار الصور على الواتس اب",
+  "call_notes": null,
+  "call_duration": 0,
+  "created_by": 3,
+  "created_at": "2024-11-02 07:55:39",
+  "updated_at": "2025-09-02 14:54:45"
+}
+tickets
+{
+  "id": 1,
+  "company_id": 1,
+  "customer_id": 7,
+  "ticket_cat_id": 1,
+  "description": "العميل لغي الطلب لانه اشتري مرتبة جديدة",
+  "status": 1,
+  "priority": 0,
+  "created_by": 3,
+  "created_at": "2024-11-02 07:55:39",
+  "closed_at": "2025-01-02 10:08:06",
+  "updated_at": "2024-11-02 07:55:39",
+  "closing_notes": null,
+  "closed_by": null
+}
+users
+{
+  "id": 1,
+  "company_id": 0,
+  "name": "يوسف",
+  "username": "يوسف",
+  "password": "default_password_123",
+  "created_by": null,
+  "is_active": 1,
+  "permissions": null,
+  "created_at": "2025-09-02 14:52:23",
+  "updated_at": "2025-09-02 14:52:23"
+}
+
+
+
+import streamlit as st
+import pandas as pd
+import plotly.express as px
+import os
+import sys
+from datetime import datetime
+
+# -----------------------------
+# Load project modules
+# -----------------------------
+sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), '..')))
+from process.data_loader import load_all_data
+from auth.authentication import check_authentication
+
+
+def main():
+    check_authentication()
+    st.set_page_config(layout="wide")
+
+    dataframes = load_all_data()
+
+    # def apply_filters(df, start_date, end_date, selected_company):
+    #     filtered_df = df[(df['created_at'].dt.date >= start_date) & (df['created_at'].dt.date <= end_date)]
+    #     if selected_company != 'All':
+    #         filtered_df = filtered_df[filtered_df['company_name'] == selected_company]
+    #     return filtered_df
+
+    st.title("Action Items Analysis")
+    if 'dataframes' not in st.session_state:
+        with st.spinner("Loading data..."):
+            st.session_state.dataframes = load_all_data()
+    dataframes = st.session_state.dataframes
+
+    ticket_item_change_another_df = dataframes.get('ticket_item_change_another', pd.DataFrame())
+    ticket_item_maintenance_df = dataframes.get('ticket_item_maintenance', pd.DataFrame())
+    ticket_item_change_same_df = dataframes.get('ticket_item_change_same', pd.DataFrame())
+    ticket_items_df = dataframes.get('ticket_items', pd.DataFrame())
+    product_info_df = dataframes.get('product_info', pd.DataFrame())
+    request_reasons_df = dataframes.get('request_reasons', pd.DataFrame())
+    tickets_df = dataframes.get('tickets', pd.DataFrame())
+    customers_df = dataframes.get('customers', pd.DataFrame())
+
+    # Add company_name to customers_df
+    if not customers_df.empty and 'company_id' in customers_df.columns:
+        company_mapping = {1: "Englander", 2: "Janssen"}
+        customers_df['company_name'] = customers_df['company_id'].map(company_mapping).fillna("NULL")
+
+  
+
+    # Unify problem names
+    if not request_reasons_df.empty:
+        request_reasons_df['name'] = request_reasons_df['name'].replace({'هبوط بالمرتبه': 'هبوط'})
+
+    def merge_data(df, ticket_items_df, tickets_df, product_info_df, request_reasons_df, customers_df):
+        if df.empty or ticket_items_df.empty:
+            return pd.DataFrame()
+
+
+        merged = pd.merge(df, ticket_items_df, left_on='ticket_item_id', right_on='id', how='inner', suffixes=('_df', ''))
+
+        # Step 2: Prepare tickets_df for merge
+        tickets_df_processed = tickets_df.copy()
+        if 'created_at' in tickets_df_processed.columns:
+            # Rename created_at in tickets_df to avoid conflict with the primary 'created_at' from ticket_items_df
+            tickets_df_processed.rename(columns={'created_at': 'ticket_created_at_from_tickets'}, inplace=True)
+
+        # Step 3: Merge with tickets_df_processed
+        # Use suffixes to ensure no conflict with existing columns in 'merged'
+        merged = pd.merge(merged, tickets_df_processed, left_on='ticket_id', right_on='id', how='left', suffixes=('', '_ticket_info'))
+
+        # Step 4: Clean up any remaining conflicting 'created_at' columns
+        # The 'created_at' from ticket_items_df should already be named 'created_at'
+        # We need to drop any other 'created_at' variants that might have been introduced.
+        columns_to_drop = []
+        for col in merged.columns:
+            if col.startswith('created_at_') and col != 'created_at':
+                columns_to_drop.append(col)
+            if col == 'ticket_created_at_from_tickets': # This was explicitly renamed, so we can drop it if not needed
+                columns_to_drop.append(col)
+
+        if columns_to_drop:
+            merged.drop(columns=columns_to_drop, inplace=True)
+
+        # Map company_id to company_name
+        if 'company_id' in merged.columns:
+            company_mapping = {1: "Englander", 2: "Janssen"}
+            merged['company_name'] = merged['company_id'].map(company_mapping).fillna("NULL")
+
+        # Merge with customers to get customer name
+        if not customers_df.empty and 'customer_id' in merged.columns:
+            merged = pd.merge(merged, customers_df[['id', 'name' ,'company_id']], left_on='customer_id', right_on='id', how='left', suffixes=('', '_customer'))
+            merged.rename(columns={'name': 'customer_name'}, inplace=True)
+
+        # Merge with request reasons
+        if not request_reasons_df.empty and 'request_reason_id' in merged.columns:
+            reasons_renamed = request_reasons_df.rename(columns={'name': 'request_reason_name'})
+            merged = pd.merge(merged, reasons_renamed[['id', 'request_reason_name']], left_on='request_reason_id', right_on='id', how='left')
+
+        # Merge with product info
+        if not product_info_df.empty and 'product_id' in merged.columns:
+            merged = pd.merge(merged, product_info_df[['id', 'product_name']], left_on='product_id', right_on='id', how='left', suffixes=('', '_product'))
+
+        return merged
+
+    merged_change_another = merge_data(ticket_item_change_another_df, ticket_items_df, tickets_df, product_info_df, request_reasons_df, customers_df)
+    merged_change_another = merged_change_another[[
+    "ticket_item_id",
+    "cost",
+    "client_approval_df",
+    "pulled",
+    "pull_date",
+    "delivered",
+    "delivery_date",
+    "updated_at_df",
+    "ticket_id",
+    "product_id",
+    "product_size",
+    "quantity",
+    "purchase_date",
+    "purchase_location",
+    "request_reason_detail",
+    "inspected",
+    "inspection_date",
+    "inspection_result",
+    "created_at",
+    "updated_at",
+    "customer_id",
+    "ticket_cat_id",
+    "description",
+    "status",
+    "created_by_ticket_info",
+    "closed_at",
+    "id_customer",
+    "customer_name",
+    "company_id_customer",
+    "request_reason_name",
+    "product_name"
+]]
+    merged_maintenance = merge_data(ticket_item_maintenance_df, ticket_items_df, tickets_df, product_info_df, request_reasons_df, customers_df)
+    merged_maintenance = merged_maintenance[[
+    "ticket_item_id",
+    "maintenance_steps",
+    "maintenance_cost",
+    "client_approval_df",
+    "pulled",
+    "pull_date",
+    "delivered",
+    "delivery_date",
+    "ticket_id",
+    "product_id",
+    "product_size",
+    "quantity",
+    "purchase_date",
+    "purchase_location",
+    "request_reason_id",
+    "request_reason_detail",
+    "inspected",
+    "inspection_date",
+    "inspection_result",
+    "created_at",
+    "updated_at",
+    "ticket_cat_id",
+    "description",
+    "status",
+    "created_by_ticket_info",
+    "closed_at",
+    "updated_at_ticket_info",
+    "closing_notes",
+    "closed_by",
+    "id_customer",
+    "customer_name",
+    "company_id_customer",
+    "request_reason_name",
+    "product_name"
+]]
+    merged_change_same = merge_data(ticket_item_change_same_df, ticket_items_df, tickets_df, product_info_df, request_reasons_df, customers_df)
+    merged_change_same = merged_change_same[[
+    "ticket_item_id",
+    "cost",
+    "client_approval_df",
+    "pulled",
+    "pull_date",
+    "delivered",
+    "delivery_date",
+    "ticket_id",
+    "product_size",
+    "quantity",
+    "purchase_date",
+    "purchase_location",
+    "request_reason_id",
+    "request_reason_detail",
+    "inspected",
+    "inspection_date",
+    "inspection_result",
+    "created_at",
+    "updated_at",
+    "customer_id",
+    "ticket_cat_id",
+    "description",
+    "status",
+    "created_by_ticket_info",
+    "closed_at",
+    "customer_name",
+    "company_id_customer",
+    "request_reason_name",
+    "product_name"
+]]
+    # Add a source column to each dataframe before concatenation
+    merged_change_another['_source_df'] = 'change_another'
+    merged_maintenance['_source_df'] = 'maintenance'
+    merged_change_same['_source_df'] = 'change_same'
+
+    # Combine all for filter options
+    combined_df = pd.concat([merged_change_another, merged_maintenance, merged_change_same], ignore_index=True)
+
+    # Tabs
+    tab1, tab2, tab3 = st.tabs(["Change Another", "Maintenance", "Change Same"])
+
+    with tab1:
+
+        st.dataframe(merged_change_another)
+    with tab2:
+
+        st.dataframe(merged_maintenance)
+    with tab3:
+
+        st.dataframe(merged_change_same)
+
+if __name__ == "__main__":
+    main()
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
