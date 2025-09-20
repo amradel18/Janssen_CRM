@@ -160,7 +160,7 @@ def main():
         )
         .reset_index()
     )
-
+#View Raw Data
     # تحويل الشهر إلى نص للعرض
     monthly_stats['month'] = monthly_stats['month'].astype(str)
 
@@ -265,8 +265,8 @@ def main():
         st.warning("No data available for the treemap.")
     
     # Display Raw Data
-    with st.expander("View Raw Data"):
-        st.dataframe(filtered_calls)
+    #with st.expander("View Raw Data"):
+        #st.dataframe(filtered_calls)
 
 if __name__ == "__main__":
     main()
