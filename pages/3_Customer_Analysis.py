@@ -10,10 +10,10 @@ sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), '..')))
 
 # Import the centralized modules
 from process.data_loader import load_all_data
+from process.session_manager import ensure_data_loaded, get_dataframes
 from auth.authentication import check_authentication
 
-# Set page config
-st.set_page_config(page_title="Customer Analysis", layout="wide")
+# Page config is set in the main app
 
 # Main function
 def main():
@@ -23,13 +23,11 @@ def main():
     # Page title
     st.title("Customer Analysis")
     
-    # Load data
-    if 'dataframes' not in st.session_state:
-        with st.spinner("Loading data..."):
-            st.session_state.dataframes = load_all_data()
+    # Ensure data is loaded
+    ensure_data_loaded()
     
-    # Safely get dataframes from session state
-    dataframes = getattr(st.session_state, 'dataframes', {})
+    # Get dataframes safely
+    dataframes = get_dataframes()
     
     customers_df = dataframes.get('customers', pd.DataFrame())
     governorates_df = dataframes.get('governorates', pd.DataFrame())

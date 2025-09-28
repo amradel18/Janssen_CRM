@@ -9,10 +9,11 @@ sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), '..')))
 
 # Import the centralized modules
 from process.data_loader import load_all_data
+from process.session_manager import ensure_data_loaded, get_dataframes
 from auth.authentication import check_authentication
 
 # Set page config
-st.set_page_config(page_title="Problematic Descriptions Analysis", layout="wide")
+# Page config is set in the main app
 
 PROBLEM_KEYWORDS = sorted(list(set([
     # --- حماية المستهلك ومشتقاتها ---
@@ -138,13 +139,11 @@ def main():
     check_authentication()
     st.title("Problematic Descriptions from Ticket and Customer Calls")
 
-    if 'all_data_loaded' not in st.session_state or not st.session_state.all_data_loaded:
-        with st.spinner("Loading data..."):
-            dataframes = load_all_data()
-            st.session_state.dataframes = dataframes
-            st.session_state.all_data_loaded = True
-    else:
-        dataframes = st.session_state.dataframes
+    # Ensure data is loaded
+    ensure_data_loaded()
+    
+    # Get dataframes safely
+    dataframes = get_dataframes()
 
     with st.spinner("Processing descriptions..."):
         descriptions_df = get_descriptions_with_details(dataframes)

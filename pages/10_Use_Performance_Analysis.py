@@ -2,25 +2,24 @@ import streamlit as st
 import pandas as pd
 import plotly.express as px
 from process.data_loader import load_all_data
-from auth.login import login_form
+from process.session_manager import ensure_data_loaded, get_dataframes
+from auth.authentication import check_authentication
 import numpy as np
 
 # Ensure page config is set before any other Streamlit calls
-st.set_page_config(page_title="User Performance Analysis", layout="wide")
+# Page config is set in the main app
 
 # Function to check authentication
-if not login_form():
-    st.stop()
+check_authentication()
 
 st.title("User Performance Analysis")
 
-# Load data
 try:
-    if 'dataframes' not in st.session_state:
-        with st.spinner("Loading data..."):
-            st.session_state.dataframes = load_all_data()
-    # Safely get dataframes from session state
-    dataframes = getattr(st.session_state, 'dataframes', {})
+    # Ensure data is loaded
+    ensure_data_loaded()
+
+    # Get dataframes safely
+    dataframes = get_dataframes()
 
     users_df = dataframes.get('users')
     tickets_df = dataframes.get('tickets')

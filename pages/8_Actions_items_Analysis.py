@@ -10,12 +10,13 @@ import numpy as np
 # -----------------------------
 sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), '..')))
 from process.data_loader import load_all_data
+from process.session_manager import ensure_data_loaded, get_dataframes
 from auth.authentication import check_authentication
 
 
 def main():
     check_authentication()
-    st.set_page_config(layout="wide")
+    # Page config is set in the main app
 
     dataframes = load_all_data()
 
@@ -35,11 +36,11 @@ def main():
         return filtered_df
 
     st.title("Action Items Analysis")
-    if 'dataframes' not in st.session_state:
-        with st.spinner("Loading data..."):
-            st.session_state.dataframes = load_all_data()
-    # Safely get dataframes from session state
-    dataframes = getattr(st.session_state, 'dataframes', {})
+    # Ensure data is loaded
+    ensure_data_loaded()
+    
+    # Get dataframes safely
+    dataframes = get_dataframes()
 
     ticket_item_change_another_df = dataframes.get('ticket_item_change_another', pd.DataFrame())
     ticket_item_maintenance_df = dataframes.get('ticket_item_maintenance', pd.DataFrame())

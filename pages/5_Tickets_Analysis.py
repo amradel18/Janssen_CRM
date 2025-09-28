@@ -11,6 +11,7 @@ sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), '..')))
 # Import the centralized modules
 from process.data_loader import load_all_data
 from process.data_processor import calculate_ticket_metrics, join_ticket_and_call_data
+from process.session_manager import ensure_data_loaded, get_dataframes
 from visualize.chart_generator import create_pie_chart, create_multi_metric_row
 
 # Import authentication module
@@ -95,15 +96,11 @@ def main():
     # Page title
     st.title("Tickets Analysis")
     
-    # Load data
-    if 'all_data_loaded' not in st.session_state or not st.session_state.all_data_loaded:
-        with st.spinner("Loading data..."):
-            all_dataframes = load_all_data()
-            st.session_state.all_dataframes = all_dataframes
-            st.session_state.all_data_loaded = True
+    # Ensure data is loaded
+    ensure_data_loaded()
     
-    # Safely get dataframes from session state
-    dataframes = getattr(st.session_state, 'all_dataframes', {})
+    # Get dataframes safely
+    dataframes = get_dataframes()
     
     # Get the merged data
     merged_data = get_ticket_call_analysis_data(dataframes)

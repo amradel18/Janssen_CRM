@@ -9,9 +9,10 @@ import plotly.express as px
 sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), '..')))
 
 from process.data_loader import load_all_data
+from process.session_manager import ensure_data_loaded, get_dataframes
 
 # Set page config
-st.set_page_config(page_title="Customer Call Analysis", layout="wide")
+# Page config is set in the main app
 
 # Import authentication module
 from auth.authentication import check_authentication
@@ -70,13 +71,11 @@ def main():
     
     st.title("Customer Call Analysis")
 
-    if 'all_data_loaded' not in st.session_state or not st.session_state.all_data_loaded:
-        with st.spinner("Loading data..."):
-            dataframes = load_all_data()
-            st.session_state.dataframes = dataframes
-            st.session_state.all_data_loaded = True
-    else:
-        dataframes = st.session_state.dataframes
+    # Ensure data is loaded
+    ensure_data_loaded()
+    
+    # Get dataframes safely
+    dataframes = get_dataframes()
 
     if 'customercall' not in dataframes or dataframes['customercall'].empty:
         st.warning("No customer call data available.")

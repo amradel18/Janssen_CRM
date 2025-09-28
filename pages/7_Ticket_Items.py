@@ -11,6 +11,7 @@ from st_aggrid import AgGrid, GridOptionsBuilder
 sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), '..')))
 
 from process.data_loader import load_all_data
+from process.session_manager import ensure_data_loaded, get_dataframes
 from auth.authentication import check_authentication
 import plotly.express as px
 
@@ -21,12 +22,11 @@ def main():
     check_authentication()
     st.title("Ticket Items Analysis")
 
-    # Load data
-    if 'dataframes' not in st.session_state:
-        with st.spinner("Loading data..."):
-            st.session_state.dataframes = load_all_data()
-    # Safely get dataframes from session state
-    dataframes = getattr(st.session_state, 'dataframes', {})
+    # Ensure data is loaded
+    ensure_data_loaded()
+    
+    # Get dataframes safely
+    dataframes = get_dataframes()
 
     # Extract necessary dataframes
     ticket_items_df = dataframes.get('ticket_items', pd.DataFrame())

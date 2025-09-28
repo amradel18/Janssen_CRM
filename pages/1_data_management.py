@@ -10,9 +10,10 @@ sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), '..')))
 # Import the authentication module
 from auth.authentication import check_authentication
 from process.data_loader import cached_table_query, load_all_data
+from process.session_manager import ensure_data_loaded, get_dataframes, reset_data
 
 # Set page config
-st.set_page_config(page_title="CRM Data Management", layout="wide")
+# Page config is set in the main app
 
 # Add custom CSS
 st.markdown("""
@@ -80,15 +81,9 @@ with st.container():
         if st.button("Reload Data", key="reload_data_btn"):
             with st.spinner("Reloading data from database..."):
                  try:
-                     # Import required modules
-                     from process.data_loader import load_all_data
-                     from datetime import datetime
-                     
-                     # Force reload data from database
-                     load_all_data(force_reload=True)
-                     
-                     # Mark data as loaded
-                     st.session_state.all_data_loaded = True
+                     # Reset data and force reload
+                     reset_data()
+                     ensure_data_loaded(force_reload=True)
                      
                      # Record sync time
                      current_time = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
@@ -112,12 +107,8 @@ with st.container():
         if st.button("Load Data", key="sync_data_btn"):
             with st.spinner("Connecting to database and loading data..."):
                 try:
-                    # Load data from database
-                    from process.data_loader import load_all_data
-                    load_all_data()
-                    
-                    # Mark data as loaded
-                    st.session_state.all_data_loaded = True
+                    # Load data using session manager
+                    ensure_data_loaded()
                     
                     # Record sync time
                     current_time = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
