@@ -101,7 +101,8 @@ def main():
             st.session_state.all_dataframes = load_all_data()
             st.session_state.all_data_loaded = True
     
-    dataframes = st.session_state.all_dataframes
+    # Safely get dataframes from session state
+    dataframes = getattr(st.session_state, 'all_dataframes', {})
     
     # Get the merged data
     merged_data = get_ticket_call_analysis_data(dataframes)

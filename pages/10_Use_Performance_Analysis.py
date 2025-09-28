@@ -19,7 +19,8 @@ try:
     if 'dataframes' not in st.session_state:
         with st.spinner("Loading data..."):
             st.session_state.dataframes = load_all_data()
-    dataframes = st.session_state.dataframes
+    # Safely get dataframes from session state
+    dataframes = getattr(st.session_state, 'dataframes', {})
 
     users_df = dataframes.get('users')
     tickets_df = dataframes.get('tickets')

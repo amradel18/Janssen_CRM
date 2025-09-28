@@ -38,7 +38,8 @@ def main():
     if 'dataframes' not in st.session_state:
         with st.spinner("Loading data..."):
             st.session_state.dataframes = load_all_data()
-    dataframes = st.session_state.dataframes
+    # Safely get dataframes from session state
+    dataframes = getattr(st.session_state, 'dataframes', {})
 
     ticket_item_change_another_df = dataframes.get('ticket_item_change_another', pd.DataFrame())
     ticket_item_maintenance_df = dataframes.get('ticket_item_maintenance', pd.DataFrame())

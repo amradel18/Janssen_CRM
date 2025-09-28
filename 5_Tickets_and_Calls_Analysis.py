@@ -102,7 +102,8 @@ def main():
             st.session_state.dataframes = dataframes
             st.session_state.all_data_loaded = True
     else:
-        dataframes = st.session_state.dataframes
+        # Safely get dataframes from session state
+    dataframes = getattr(st.session_state, 'dataframes', {})
     
     # --- Process Data ---
     with st.spinner("Processing data..."):
