@@ -98,7 +98,8 @@ def main():
     # Load data
     if 'all_data_loaded' not in st.session_state or not st.session_state.all_data_loaded:
         with st.spinner("Loading data..."):
-            st.session_state.all_dataframes = load_all_data()
+            all_dataframes = load_all_data()
+            st.session_state.all_dataframes = all_dataframes
             st.session_state.all_data_loaded = True
     
     # Safely get dataframes from session state
