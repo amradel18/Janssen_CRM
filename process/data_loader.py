@@ -13,7 +13,7 @@ sys.path.append(os.path.abspath(os.path.dirname(os.path.dirname(__file__))))
 # Load environment variables from .env file
 load_dotenv()
 
-company_mapping = {1: "Englander", 2: "Janssen"}
+company_mapping = {2: "برستيج", 3: "انجلندر", 4: "اسبرانج اير", 5: "يانسن", 6: "اكسسوارس", 7: "برونتو"}
 
 def get_companies_data():
     """
@@ -21,25 +21,33 @@ def get_companies_data():
     Returns a DataFrame with company information including id and name columns.
     """
     try:
-        companies_df = cached_table_query('companies')
+        companies_df = cached_table_query('company')
         if companies_df.empty:
             # Fallback to hardcoded mapping if database is empty
             companies_df = pd.DataFrame([
-                {'id': 1, 'name': 'Englander'},
-                {'id': 2, 'name': 'Janssen'}
+                {'id': 2, 'name': 'برستيج'},
+                {'id': 3, 'name': 'انجلندر'},
+                {'id': 4, 'name': 'اسبرانج اير'},
+                {'id': 5, 'name': 'يانسن'},
+                {'id': 6, 'name': 'اكسسوارس'},
+                {'id': 7, 'name': 'برونتو'}
             ])
         return companies_df
     except Exception as e:
         st.error(f"خطأ في تحميل بيانات الشركات: {str(e)}")
         # Return fallback data
         return pd.DataFrame([
-            {'id': 1, 'name': 'Englander'},
-            {'id': 2, 'name': 'Janssen'}
+            {'id': 2, 'name': 'برستيج'},
+            {'id': 3, 'name': 'انجلندر'},
+            {'id': 4, 'name': 'اسبرانج اير'},
+            {'id': 5, 'name': 'يانسن'},
+            {'id': 6, 'name': 'اكسسوارس'},
+            {'id': 7, 'name': 'برونتو'}
         ])
 
 def get_company_mapping():
     """
-    Get company mapping as dictionary from companies table.
+    Get company mapping as dictionary from company table.
     Returns dict with company_id as key and company_name as value.
     """
     try:
