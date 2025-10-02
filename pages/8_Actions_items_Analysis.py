@@ -9,7 +9,7 @@ import numpy as np
 # Load project modules
 # -----------------------------
 sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), '..')))
-from process.data_loader import load_all_data
+from process.data_loader import load_all_data, get_companies_data, get_company_mapping
 from process.session_manager import ensure_data_loaded, get_dataframes
 from auth.authentication import check_authentication
 
@@ -53,7 +53,7 @@ def main():
 
     # Add company_name to customers_df
     if not customers_df.empty and 'company_id' in customers_df.columns:
-        company_mapping = {1: "Englander", 2: "Janssen"}
+        company_mapping = get_company_mapping()
         customers_df['company_name'] = customers_df['company_id'].map(company_mapping).fillna("NULL")
 
   
@@ -94,7 +94,7 @@ def main():
 
         # Map company_id to company_name
         if 'company_id' in merged.columns:
-            company_mapping = {1: "Englander", 2: "Janssen"}
+            company_mapping = get_company_mapping()
             merged['company_name'] = merged['company_id'].map(company_mapping).fillna("NULL")
 
         # Merge with customers to get customer name

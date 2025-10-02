@@ -1,7 +1,7 @@
 import streamlit as st
 import pandas as pd
 import plotly.express as px
-from process.data_loader import load_all_data
+from process.data_loader import load_all_data, get_companies_data, get_company_mapping
 from process.session_manager import ensure_data_loaded, get_dataframes
 from auth.authentication import check_authentication
 import numpy as np
@@ -52,10 +52,10 @@ try:
     if 'ticket_id_ref' in ticketcall_df.columns:
         ticketcall_df = ticketcall_df.drop(columns=['ticket_id_ref'])
 
-    # Sidebar filter for company
+    # Sidebar filter for company# Filter Options
     st.sidebar.header("Filter by Company")
-    # Create company mapping
-    company_mapping = {1: "Englander", 2: "Janssen"}
+    
+    company_mapping = get_company_mapping()
     company_list = ['All'] + list(company_mapping.values())
     selected_company = st.sidebar.selectbox('Select Company', company_list)
     

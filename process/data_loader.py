@@ -15,6 +15,43 @@ load_dotenv()
 
 company_mapping = {1: "Englander", 2: "Janssen"}
 
+def get_companies_data():
+    """
+    Load companies data from the database and return as DataFrame.
+    Returns a DataFrame with company information including id and name columns.
+    """
+    try:
+        companies_df = cached_table_query('companies')
+        if companies_df.empty:
+            # Fallback to hardcoded mapping if database is empty
+            companies_df = pd.DataFrame([
+                {'id': 1, 'name': 'Englander'},
+                {'id': 2, 'name': 'Janssen'}
+            ])
+        return companies_df
+    except Exception as e:
+        st.error(f"خطأ في تحميل بيانات الشركات: {str(e)}")
+        # Return fallback data
+        return pd.DataFrame([
+            {'id': 1, 'name': 'Englander'},
+            {'id': 2, 'name': 'Janssen'}
+        ])
+
+def get_company_mapping():
+    """
+    Get company mapping as dictionary from companies table.
+    Returns dict with company_id as key and company_name as value.
+    """
+    try:
+        companies_df = get_companies_data()
+        if not companies_df.empty and 'id' in companies_df.columns and 'name' in companies_df.columns:
+            return dict(zip(companies_df['id'], companies_df['name']))
+        else:
+            return company_mapping  # Fallback to hardcoded mapping
+    except Exception as e:
+        st.error(f"خطأ في إنشاء mapping الشركات: {str(e)}")
+        return company_mapping  # Fallback to hardcoded mapping
+
 def _has_streamlit_secrets() -> bool:
     home_path = os.path.join(os.path.expanduser("~"), ".streamlit", "secrets.toml")
     project_root = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
@@ -148,7 +185,7 @@ def load_all_data(force_reload=False, cache_key=None):
         
         # Define all tables to load
         all_tables = [
-            'call_categories', 'call_types', 'cities', 'customer_phones',
+            'call_categories', 'call_types', 'cities', 'companies', 'customer_phones',
             'customers', 'governorates', 'product_info',
             'request_reasons', 'ticket_categories', 'ticket_item_change_another',
             'ticket_item_change_same', 'ticket_item_maintenance', 'ticket_items',

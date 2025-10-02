@@ -9,7 +9,7 @@ import plotly.express as px
 sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), '..')))
 
 # Import the centralized modules
-from process.data_loader import load_all_data
+from process.data_loader import load_all_data, get_companies_data, get_company_mapping
 from process.data_processor import calculate_call_metrics, join_ticket_and_call_data
 from process.session_manager import ensure_data_loaded, get_dataframes
 from visualize.chart_generator import create_pie_chart, create_multi_metric_row
@@ -185,7 +185,7 @@ def main():
         
         # Company filter
         st.subheader("Company")
-        company_mapping = {1: "Englander", 2: "Janssen"}
+        company_mapping = get_company_mapping()
         company_options = ["All"] + list(company_mapping.values())
         selected_company = st.selectbox("Select Company", company_options)
     

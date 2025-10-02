@@ -9,7 +9,7 @@ import plotly.express as px
 sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), '..')))
 
 # Import the centralized modules
-from process.data_loader import load_all_data
+from process.data_loader import load_all_data, get_companies_data, get_company_mapping
 from process.session_manager import ensure_data_loaded, get_dataframes
 from auth.authentication import check_authentication
 
@@ -49,8 +49,8 @@ def main():
     customers_df['governorate_name'] = customers_df['governorate_name'].fillna('Unknown Governorate')
     customers_df['city_name'] = customers_df['city_name'].fillna('Unknown City')
 
-    # Map company_id to company_name
-    company_mapping = {1: "Englander", 2: "Janssen"}
+    # Map company_id to company_name using companies table
+    company_mapping = get_company_mapping()
     customers_df['company_name'] = customers_df['company_id'].map(company_mapping).fillna("NULL")
 
     # Sidebar filters

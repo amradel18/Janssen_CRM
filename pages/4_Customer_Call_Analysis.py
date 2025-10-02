@@ -8,7 +8,7 @@ import plotly.express as px
 # Add the project root to the path
 sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), '..')))
 
-from process.data_loader import load_all_data
+from process.data_loader import load_all_data, get_companies_data, get_company_mapping
 from process.session_manager import ensure_data_loaded, get_dataframes
 
 # Set page config
@@ -35,8 +35,8 @@ def get_call_analysis_data(dataframes):
     call_categories_df = call_categories_df.rename(columns={'name': 'call_category_name'})
     governorates_df = governorates_df.rename(columns={'name': 'governorate_name'})
 
-    # Add company mapping to customers_df
-    company_mapping = {1: "Englander", 2: "Janssen"}
+    # Add company mapping to customers_df using companies table
+    company_mapping = get_company_mapping()
     customers_df['company_name'] = customers_df['company_id'].map(company_mapping).fillna("NULL")
 
     # Merge governorate into customers

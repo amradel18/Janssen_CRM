@@ -8,7 +8,7 @@ import re
 sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), '..')))
 
 # Import the centralized modules
-from process.data_loader import load_all_data
+from process.data_loader import load_all_data, get_companies_data, get_company_mapping
 from process.session_manager import ensure_data_loaded, get_dataframes
 from auth.authentication import check_authentication
 
@@ -122,7 +122,7 @@ def get_descriptions_with_details(dataframes):
     # Merge with customer data to get names
     if 'id' in customers_df.columns and 'name' in customers_df.columns:
         customers_df = customers_df.rename(columns={'id': 'customer_id', 'name': 'customer_name'})
-        company_mapping = {1: "Englander", 2: "Janssen"}
+        company_mapping = get_company_mapping()
         customers_df['company_name'] = customers_df['company_id'].map(company_mapping).fillna("NULL")
         full_df = pd.merge(full_df, customers_df[['customer_id', 'customer_name', 'company_name']], on='customer_id', how='left')
         full_df['customer_name'] = full_df['customer_name'].fillna('Unknown')

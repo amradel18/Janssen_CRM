@@ -10,13 +10,19 @@ from st_aggrid import AgGrid, GridOptionsBuilder
 # Add the project root to the path
 sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), '..')))
 
-from process.data_loader import load_all_data
+from process.data_loader import load_all_data, get_companies_data, get_company_mapping
 from process.session_manager import ensure_data_loaded, get_dataframes
 from auth.authentication import check_authentication
 import plotly.express as px
 
 # Set page config
 #st.set_page_config(page_title="Ticket Items Analysis", layout="wide")
+
+# Helper to ensure merge keys share the same integer dtype
+def coerce_integer_columns(df, columns):
+    for col in columns:
+        if col in df.columns:
+            df[col] = pd.to_numeric(df[col], errors='coerce').astype('Int64')
 
 def main():
     check_authentication()
@@ -38,11 +44,24 @@ def main():
     customers_df = dataframes.get('customers', pd.DataFrame())
     ticketcall_df = dataframes.get('ticketcall', pd.DataFrame())
 
+    # Coerce merge keys to consistent nullable integer dtype
+    coerce_integer_columns(ticket_items_df, ['ticket_id','product_id','request_reason_id','ticket_cat_id','created_by','customer_id'])
+    coerce_integer_columns(tickets_df, ['id','company_id','customer_id','created_by'])
+    coerce_integer_columns(product_info_df, ['id'])
+    coerce_integer_columns(request_reasons_df, ['id'])
+    coerce_integer_columns(ticket_categories_df, ['id'])
+    coerce_integer_columns(users_df, ['id'])
+    coerce_integer_columns(customers_df, ['id','company_id'])
+    coerce_integer_columns(ticketcall_df, ['ticket_id','created_by','call_type'])
+
 
     # Process ticketcall data for call details
     if not ticketcall_df.empty:
         call_users_df = dataframes.get('users', pd.DataFrame()).copy().rename(columns={'name': 'user_name'})
         call_types_df = dataframes.get('call_types', pd.DataFrame()).copy().rename(columns={'name': 'call_type_name'})
+        # Ensure ids used for merges are consistent
+        coerce_integer_columns(call_users_df, ['id'])
+        coerce_integer_columns(call_types_df, ['id'])
         
         processed_calls_df = ticketcall_df.merge(call_users_df[['id', 'user_name']], left_on='created_by', right_on='id', how='left')
         processed_calls_df = processed_calls_df.merge(call_types_df[['id', 'call_type_name']], left_on='call_type', right_on='id', how='left')
@@ -104,7 +123,7 @@ def main():
         selected_inspected = st.selectbox("Select Inspected", inspected_list)
 
         # Filter by Company
-        company_mapping = {1: "Englander", 2: "Janssen"}
+        company_mapping = get_company_mapping()
         if 'company_id' in tickets_df.columns:
             tickets_df['company_name'] = tickets_df['company_id'].map(company_mapping).fillna("NULL")
             company_list = ["All"] + tickets_df['company_name'].unique().tolist()
