@@ -63,10 +63,45 @@ def get_ticket_call_analysis_data(dataframes):
     # Merge with governorates
     merged_df = merged_df.merge(governorates_df[['id', 'governorate_name']], left_on='governomate_id', right_on='id', how='left', suffixes=('', '_gov'))
 
-    # Merge with other dimension tables
-    merged_df = merged_df.merge(users_df[['id', 'user_name']], left_on='created_by', right_on='id', how='left', suffixes=('', '_user'))
-    merged_df = merged_df.merge(call_types_df[['id', 'call_type_name']], left_on='call_type', right_on='id', how='left', suffixes=('', '_call_type'))
-    merged_df = merged_df.merge(call_categories_df[['id', 'call_category_name']], left_on='call_cat_id', right_on='id', how='left', suffixes=('', '_call_cat'))
+    # Merge with other dimension tables - using unique suffixes for each merge
+    # First, ensure users_df has a unique id column for merging
+    users_df_merge = users_df.copy()
+    users_df_merge = users_df_merge.rename(columns={'id': 'user_id'})
+    
+    # Ensure data types match before merging
+    if 'created_by' in merged_df.columns:
+        # Convert created_by to integer if it's not already
+        merged_df['created_by'] = pd.to_numeric(merged_df['created_by'], errors='coerce')
+        # Convert user_id to the same type as created_by
+        users_df_merge['user_id'] = pd.to_numeric(users_df_merge['user_id'], errors='coerce')
+    
+    merged_df = merged_df.merge(users_df_merge[['user_id', 'user_name']], left_on='created_by', right_on='user_id', how='left')
+    
+    # Then ensure call_types_df has a unique id column for merging
+    call_types_df_merge = call_types_df.copy()
+    call_types_df_merge = call_types_df_merge.rename(columns={'id': 'call_type_id'})
+    
+    # Ensure data types match before merging
+    if 'call_type' in merged_df.columns:
+        # Convert call_type to integer if it's not already
+        merged_df['call_type'] = pd.to_numeric(merged_df['call_type'], errors='coerce')
+        # Convert call_type_id to the same type as call_type
+        call_types_df_merge['call_type_id'] = pd.to_numeric(call_types_df_merge['call_type_id'], errors='coerce')
+    
+    merged_df = merged_df.merge(call_types_df_merge[['call_type_id', 'call_type_name']], left_on='call_type', right_on='call_type_id', how='left')
+    
+    # Finally ensure call_categories_df has a unique id column for merging
+    call_categories_df_merge = call_categories_df.copy()
+    call_categories_df_merge = call_categories_df_merge.rename(columns={'id': 'call_category_id'})
+    
+    # Ensure data types match before merging
+    if 'call_cat_id' in merged_df.columns:
+        # Convert call_cat_id to integer if it's not already
+        merged_df['call_cat_id'] = pd.to_numeric(merged_df['call_cat_id'], errors='coerce')
+        # Convert call_category_id to the same type as call_cat_id
+        call_categories_df_merge['call_category_id'] = pd.to_numeric(call_categories_df_merge['call_category_id'], errors='coerce')
+    
+    merged_df = merged_df.merge(call_categories_df_merge[['call_category_id', 'call_category_name']], left_on='call_cat_id', right_on='call_category_id', how='left')
 
     # Fill NA
     merged_df['customer_name'] = merged_df['customer_name'].fillna('Unknown Customer')

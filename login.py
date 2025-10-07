@@ -53,14 +53,10 @@ with st.container():
         col1, col2 = st.columns(2)
         with col1:
             if st.button("Go to Dashboard", key="dashboard_btn"):
-                import os
-                os.system("streamlit run dashboard.py")
-                st.stop()
+                st.switch_page('pages/3_Customer_Analysis.py')
         with col2:
             if st.button("Data Management", key="data_management_btn"):
-                import os
-                os.system("streamlit run data_management.py")
-                st.stop()
+                st.switch_page('pages/1_data_management.py')
         st.write(f"Welcome, {st.session_state.get('username', 'User')}!")
         
         # Logout button

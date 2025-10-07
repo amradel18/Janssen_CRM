@@ -13,29 +13,13 @@ sys.path.append(os.path.abspath(os.path.dirname(os.path.dirname(__file__))))
 # Load environment variables from .env file
 load_dotenv()
 
-company_mapping = {1: "janssen", 2: "englender"}
+company_mapping = {5: "janssen", 3: "englender"}
 
 def get_companies_data():
-    """
-    Load companies data from the database and return as DataFrame.
-    Returns a DataFrame with company information including id and name columns.
-    """
-    try:
-        companies_df = cached_table_query('companies')
-        if companies_df.empty:
-            # Fallback to hardcoded mapping if database is empty
-            companies_df = pd.DataFrame([
-                {'id': 1, 'name': 'janssen'},
-                {'id': 2, 'name': 'englender'}
-            ])
-        return companies_df
-    except Exception as e:
-        st.error(f"خطأ في تحميل بيانات الشركات: {str(e)}")
-        # Return fallback data
-        return pd.DataFrame([
-            {'id': 1, 'name': 'janssen'},
-            {'id': 2, 'name': 'englender'}
-        ])
+    companies_df = cached_table_query('companies')
+
+    return companies_df
+
 
 def get_company_mapping():
     """
@@ -125,19 +109,27 @@ def cached_table_query(table_name: str, database_name: str = 'janssencrm', force
         database_name: Database name (default: 'janssencrm')
         force_reload: If True, reload from database even if cached (default: False)
     """
-    # Check if we already have this table loaded in session state and not forcing reload
-    if not force_reload and 'loaded_tables' in st.session_state and table_name in st.session_state.loaded_tables:
-        return st.session_state.loaded_tables[table_name]
+    try:
+        # Check if we already have this table loaded in session state and not forcing reload
+        if not force_reload and hasattr(st, 'session_state') and 'loaded_tables' in st.session_state and table_name in st.session_state.loaded_tables:
+            return st.session_state.loaded_tables[table_name]
+    except:
+        # If session_state is not available (outside Streamlit context), just proceed to load from database
+        pass
     
     # If not in session state or forcing reload, load from database
     engine = get_database_connection()
     df = pd.read_sql(f"SELECT * FROM {database_name}.{table_name}", con=engine)
     
-    # Store in session state for future use
-    if 'loaded_tables' not in st.session_state:
-        st.session_state.loaded_tables = {}
-    
-    st.session_state.loaded_tables[table_name] = df
+    # Store in session state for future use (only if session_state is available)
+    try:
+        if hasattr(st, 'session_state'):
+            if 'loaded_tables' not in st.session_state:
+                st.session_state.loaded_tables = {}
+            st.session_state.loaded_tables[table_name] = df
+    except:
+        # If session_state is not available, just skip caching
+        pass
     
     return df
 

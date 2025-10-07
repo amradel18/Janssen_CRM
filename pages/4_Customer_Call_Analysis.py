@@ -89,9 +89,9 @@ def main():
         # Date range filter
         min_date = call_data['created_at'].min().date()
         max_date = call_data['created_at'].max().date()
-        default_start = max_date - timedelta(days=30)
         
-        start_date = st.date_input("Start Date", value=default_start, min_value=min_date, max_value=max_date)
+        
+        start_date = st.date_input("Start Date", value=min_date, min_value=min_date, max_value=max_date)
         end_date = st.date_input("End Date", value=max_date, min_value=min_date, max_value=max_date)
 
         # Company filter

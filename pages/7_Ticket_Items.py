@@ -10,7 +10,7 @@ from st_aggrid import AgGrid, GridOptionsBuilder
 # Add the project root to the path
 sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), '..')))
 
-from process.data_loader import load_all_data, get_companies_data, get_company_mapping
+from process.data_loader import load_all_data, get_companies_data, get_company_mapping, cached_table_query
 from process.session_manager import ensure_data_loaded, get_dataframes
 from auth.authentication import check_authentication
 import plotly.express as px
@@ -42,16 +42,18 @@ def main():
     ticket_categories_df = dataframes.get('ticket_categories', pd.DataFrame())
     users_df = dataframes.get('users', pd.DataFrame())
     customers_df = dataframes.get('customers', pd.DataFrame())
+    companies_df = dataframes.get('companies', pd.DataFrame())
     ticketcall_df = dataframes.get('ticketcall', pd.DataFrame())
 
     # Coerce merge keys to consistent nullable integer dtype
-    coerce_integer_columns(ticket_items_df, ['ticket_id','product_id','request_reason_id','ticket_cat_id','created_by','customer_id'])
+    coerce_integer_columns(ticket_items_df, ['ticket_id','product_id','request_reason_id','ticket_cat_id','created_by','customer_id','company_id'])
     coerce_integer_columns(tickets_df, ['id','company_id','customer_id','created_by'])
     coerce_integer_columns(product_info_df, ['id'])
     coerce_integer_columns(request_reasons_df, ['id'])
     coerce_integer_columns(ticket_categories_df, ['id'])
     coerce_integer_columns(users_df, ['id'])
     coerce_integer_columns(customers_df, ['id','company_id'])
+    coerce_integer_columns(companies_df, ['id'])
     coerce_integer_columns(ticketcall_df, ['ticket_id','created_by','call_type'])
 
 
@@ -75,6 +77,13 @@ def main():
     if ticket_items_df.empty:
         st.warning("No ticket items data available.")
         return
+
+    # Ensure company_name is available on ticket_items before building filters
+    if not companies_df.empty and 'company_id' in ticket_items_df.columns:
+        companies_lookup = companies_df[['id','name']].copy()
+        companies_lookup.rename(columns={'id':'company_id','name':'company_name'}, inplace=True)
+        ticket_items_df = pd.merge(ticket_items_df, companies_lookup, on='company_id', how='left')
+        ticket_items_df['company_name'] = ticket_items_df['company_name'].fillna('Unknown Company').astype(str).str.strip()
 
     # Convert date columns
     ticket_items_df['created_at'] = pd.to_datetime(ticket_items_df['created_at'])
@@ -122,22 +131,106 @@ def main():
         inspected_list = ["All", "Yes", "No"]
         selected_inspected = st.selectbox("Select Inspected", inspected_list)
 
-        # Filter by Company
-        company_mapping = get_company_mapping()
-        if 'company_id' in tickets_df.columns:
-            tickets_df['company_name'] = tickets_df['company_id'].map(company_mapping).fillna("NULL")
-            company_list = ["All"] + tickets_df['company_name'].unique().tolist()
-            selected_company = st.selectbox("Select Company", company_list)
-        else:
-            selected_company = "All"
+        # Filter by Company - use company_name values present in ticket_items
+        company_name_options = ["All"] + sorted(ticket_items_df['company_name'].dropna().astype(str).str.strip().unique().tolist())
+        selected_company_name = st.selectbox("Select Company", company_name_options)
+        
 
-    # Merge dataframes for detailed analysis
-    merged_df = ticket_items_df.merge(tickets_df, left_on='ticket_id', right_on='id', how='left', suffixes=('', '_ticket'))
-    merged_df = merged_df.merge(product_info_df, left_on='product_id', right_on='id', how='left', suffixes=('', '_product'))
-    merged_df = merged_df.merge(request_reasons_df.rename(columns={'name': 'name_reason'}), left_on='request_reason_id', right_on='id', how='left', suffixes=('', '_reason_suffix'))
-    merged_df = merged_df.merge(ticket_categories_df.rename(columns={'name': 'name_category'}), left_on='ticket_cat_id', right_on='id', how='left', suffixes=('', '_category_suffix'))
-    merged_df = merged_df.merge(users_df.rename(columns={'name': 'name_user'}), left_on='created_by', right_on='id', how='left', suffixes=('', '_user_suffix'))
-    merged_df = merged_df.merge(customers_df.rename(columns={'name': 'customer_name'}), left_on='customer_id', right_on='id', how='left', suffixes=('', '_customer'))
+
+    # Merge dataframes for detailed analysis with unique column names to avoid conflicts
+    # Start with ticket_items as base dataframe
+    merged_df = ticket_items_df.copy()
+    
+    # Then merge with tickets to get customer_id
+    tickets_df_merge = tickets_df.copy()
+    tickets_df_merge = tickets_df_merge.rename(columns={'id': 'ticket_table_id'})
+    
+    # Drop conflicting columns from tickets_df_merge to avoid duplicate column issues
+    # IMPORTANT: We keep company_id from ticket_items, so we drop it from tickets
+    columns_to_drop_tickets = ['created_by', 'updated_at', 'created_at', 'company_id']
+    tickets_df_merge = tickets_df_merge.drop(columns=[col for col in columns_to_drop_tickets if col in tickets_df_merge.columns])
+    
+    # Ensure data types match before merging
+    if 'ticket_id' in merged_df.columns:
+        merged_df['ticket_id'] = pd.to_numeric(merged_df['ticket_id'], errors='coerce')
+        tickets_df_merge['ticket_table_id'] = pd.to_numeric(tickets_df_merge['ticket_table_id'], errors='coerce')
+    
+    merged_df = merged_df.merge(tickets_df_merge, left_on='ticket_id', right_on='ticket_table_id', how='left')
+    
+    # Merge with product info
+    product_info_df_merge = product_info_df.copy()
+    product_info_df_merge = product_info_df_merge.rename(columns={'id': 'product_table_id'})
+    
+    # Drop conflicting columns from product_info_df_merge
+    columns_to_drop_product = ['created_by', 'updated_at', 'company_id', 'created_at']
+    product_info_df_merge = product_info_df_merge.drop(columns=[col for col in columns_to_drop_product if col in product_info_df_merge.columns])
+    
+    # Ensure data types match before merging
+    if 'product_id' in merged_df.columns:
+        merged_df['product_id'] = pd.to_numeric(merged_df['product_id'], errors='coerce')
+        product_info_df_merge['product_table_id'] = pd.to_numeric(product_info_df_merge['product_table_id'], errors='coerce')
+    
+    merged_df = merged_df.merge(product_info_df_merge, left_on='product_id', right_on='product_table_id', how='left')
+    
+    # Merge with request reasons
+    request_reasons_df_merge = request_reasons_df.copy()
+    request_reasons_df_merge = request_reasons_df_merge.rename(columns={'id': 'reason_table_id', 'name': 'name_reason'})
+    
+    # Drop conflicting columns from request_reasons_df_merge
+    columns_to_drop_reasons = ['created_by', 'updated_at', 'company_id', 'created_at']
+    request_reasons_df_merge = request_reasons_df_merge.drop(columns=[col for col in columns_to_drop_reasons if col in request_reasons_df_merge.columns])
+    
+    # Ensure data types match before merging
+    if 'request_reason_id' in merged_df.columns:
+        merged_df['request_reason_id'] = pd.to_numeric(merged_df['request_reason_id'], errors='coerce')
+        request_reasons_df_merge['reason_table_id'] = pd.to_numeric(request_reasons_df_merge['reason_table_id'], errors='coerce')
+    
+    merged_df = merged_df.merge(request_reasons_df_merge, left_on='request_reason_id', right_on='reason_table_id', how='left')
+    
+    # Merge with ticket categories
+    ticket_categories_df_merge = ticket_categories_df.copy()
+    ticket_categories_df_merge = ticket_categories_df_merge.rename(columns={'id': 'category_table_id', 'name': 'name_category'})
+    
+    # Drop conflicting columns from ticket_categories_df_merge
+    columns_to_drop_categories = ['created_by', 'updated_at', 'company_id', 'created_at']
+    ticket_categories_df_merge = ticket_categories_df_merge.drop(columns=[col for col in columns_to_drop_categories if col in ticket_categories_df_merge.columns])
+    
+    # Ensure data types match before merging
+    if 'ticket_cat_id' in merged_df.columns:
+        merged_df['ticket_cat_id'] = pd.to_numeric(merged_df['ticket_cat_id'], errors='coerce')
+        ticket_categories_df_merge['category_table_id'] = pd.to_numeric(ticket_categories_df_merge['category_table_id'], errors='coerce')
+    
+    merged_df = merged_df.merge(ticket_categories_df_merge, left_on='ticket_cat_id', right_on='category_table_id', how='left')
+    
+    # Merge with users
+    users_df_merge = users_df.copy()
+    users_df_merge = users_df_merge.rename(columns={'id': 'user_table_id', 'name': 'name_user'})
+    
+    # Drop conflicting columns from users_df_merge
+    columns_to_drop_users = ['updated_at', 'company_id', 'created_at']
+    users_df_merge = users_df_merge.drop(columns=[col for col in columns_to_drop_users if col in users_df_merge.columns])
+    
+    # Ensure data types match before merging
+    if 'created_by' in merged_df.columns:
+        merged_df['created_by'] = pd.to_numeric(merged_df['created_by'], errors='coerce')
+        users_df_merge['user_table_id'] = pd.to_numeric(users_df_merge['user_table_id'], errors='coerce')
+    
+    merged_df = merged_df.merge(users_df_merge, left_on='created_by', right_on='user_table_id', how='left')
+    
+    # Merge with customers
+    customers_df_merge = customers_df.copy()
+    customers_df_merge = customers_df_merge.rename(columns={'id': 'customer_table_id', 'name': 'customer_name'})
+    
+    # Drop conflicting columns from customers_df_merge but keep company_id
+    columns_to_drop_customers = ['created_by', 'updated_at', 'created_at']
+    customers_df_merge = customers_df_merge.drop(columns=[col for col in columns_to_drop_customers if col in customers_df_merge.columns])
+    
+    # Ensure data types match before merging
+    if 'customer_id' in merged_df.columns:
+        merged_df['customer_id'] = pd.to_numeric(merged_df['customer_id'], errors='coerce')
+        customers_df_merge['customer_table_id'] = pd.to_numeric(customers_df_merge['customer_table_id'], errors='coerce')
+    
+    merged_df = merged_df.merge(customers_df_merge, left_on='customer_id', right_on='customer_table_id', how='left')
 
     # Merge ticket call data
     if ticketcall_df is not None and not ticketcall_df.empty:
@@ -147,8 +240,7 @@ def main():
         merged_df = merged_df.merge(call_descriptions, on='ticket_id', how='left')
         merged_df['call_details'] = merged_df['call_details'].fillna('No calls')
 
-
-   # Unify request reasons
+# Unify request reasons
     if 'name_reason' in merged_df.columns:
         merged_df['name_reason'] = merged_df['name_reason'].replace('هبوط بالمرتبه', 'هبوط')
 
@@ -170,8 +262,8 @@ def main():
         inspected_value = 1 if selected_inspected == "Yes" else 0
         filtered_df = filtered_df[filtered_df['inspected'] == inspected_value]
 
-    if selected_company != "All" and 'company_name' in filtered_df.columns:
-        filtered_df = filtered_df[filtered_df['company_name'] == selected_company]
+    if selected_company_name != "All" and 'company_name_x' in filtered_df.columns:
+        filtered_df = filtered_df[filtered_df['company_name_x'].astype(str).str.strip() == str(selected_company_name).strip()]
 
     # Display KPIs
     st.header("Ticket Items Overview")

@@ -31,11 +31,41 @@ def main():
         else:
             filtered_df = df
 
-        if selected_company_id != 'All' and 'company_id_customer' in filtered_df.columns:
-            filtered_df = filtered_df[filtered_df['company_id_customer'] == selected_company_id]
+        # Filter by company_id - prioritize direct company_id from action item tables
+        if selected_company_id != 'All':
+            # First check for direct company_id from action item tables
+            if 'company_id' in filtered_df.columns:
+                filtered_df = filtered_df[filtered_df['company_id'] == selected_company_id]
+            # Fallback to company_id_customer if direct company_id is not available
+            elif 'company_id_customer' in filtered_df.columns:
+                filtered_df = filtered_df[filtered_df['company_id_customer'] == selected_company_id]
+        
         return filtered_df
 
     st.title("Action Items Analysis")
+    
+    # Company filter at the top of the page
+    st.subheader("🏢 Company Filter")
+    companies_df = get_companies_data()
+    selected_company_name = 'All'
+    selected_company_id = 'All'
+
+    if not companies_df.empty and 'id' in companies_df.columns and 'name' in companies_df.columns:
+        # Create a mapping from company_name to company_id
+        company_name_to_id = dict(zip(companies_df['name'], companies_df['id']))
+        company_names_for_selectbox = ['All'] + sorted(companies_df['name'].unique().tolist())
+        
+        col1, col2 = st.columns([2, 1])
+        with col1:
+            selected_company_name = st.selectbox("Select Company", company_names_for_selectbox, key="company_filter_main")
+        
+        if selected_company_name != 'All':
+            selected_company_id = company_name_to_id.get(selected_company_name, 'All')
+            with col2:
+                st.info(f"Selected: {selected_company_name}")
+    
+    st.divider()
+    
     # Ensure data is loaded
     ensure_data_loaded()
     
@@ -92,10 +122,15 @@ def main():
         if columns_to_drop:
             merged.drop(columns=columns_to_drop, inplace=True)
 
-        # Map company_id to company_name
+        # Map company_id to company_name via direct merge with companies_df
         if 'company_id' in merged.columns:
-            company_mapping = get_company_mapping()
-            merged['company_name'] = merged['company_id'].map(company_mapping).fillna("NULL")
+            companies_df = get_companies_data()
+            if not companies_df.empty and 'id' in companies_df.columns and 'name' in companies_df.columns:
+                companies_small = companies_df[['id', 'name']].rename(columns={'id': 'company_id', 'name': 'company_name'})
+                merged = pd.merge(merged, companies_small, on='company_id', how='left')
+                merged['company_name'] = merged['company_name'].fillna("Unknown Company")
+            else:
+                merged['company_name'] = "Unknown Company"
 
         # Merge with customers to get customer name
         if not customers_df.empty and 'customer_id' in merged.columns:
@@ -135,6 +170,8 @@ def main():
     "inspection_result",
     "created_at",
     "updated_at",
+    "company_id",
+    "company_name",
     "customer_id",
     "ticket_cat_id",
     "description",
@@ -170,6 +207,8 @@ def main():
     "inspection_result",
     "created_at",
     "updated_at",
+    "company_id",
+    "company_name",
     "ticket_cat_id",
     "description",
     "status",
@@ -205,6 +244,8 @@ def main():
     "inspection_result",
     "created_at",
     "updated_at",
+    "company_id",
+    "company_name",
     "customer_id",
     "ticket_cat_id",
     "description",
@@ -237,27 +278,34 @@ def main():
 
     start_date = st.sidebar.date_input("Start Date", min_date)
     end_date = st.sidebar.date_input("End Date", max_date)
-
-    # Company filter
-    selected_company_name = 'All'
-    selected_company_id = 'All'
-
-    if not customers_df.empty and 'company_id' in customers_df.columns and 'company_name' in customers_df.columns:
-        # Create a mapping from company_name to company_id
-        company_name_to_id = customers_df.set_index('company_name')['company_id'].to_dict()
-        company_names_for_selectbox = ['All'] + sorted(customers_df['company_name'].unique().tolist())
-        selected_company_name = st.sidebar.selectbox("Select Company", company_names_for_selectbox)
-        
-        if selected_company_name != 'All':
-            selected_company_id = company_name_to_id.get(selected_company_name, 'All')
     
-    # Apply filters
-    filtered_combined_df = apply_filters(combined_df, start_date, end_date, selected_company_id)
+    # Apply filters to each dataframe independently
+    def apply_filters_to_dataframe(df, start_date, end_date, selected_company_id):
+        if df.empty:
+            return pd.DataFrame()
+        
+        # Apply date filter
+        if 'created_at' in df.columns:
+            df['created_at'] = pd.to_datetime(df['created_at'], errors='coerce')
+            filtered_df = df[(df['created_at'].dt.date >= start_date) & (df['created_at'].dt.date <= end_date)]
+        else:
+            filtered_df = df
 
-    # Filter individual dataframes based on the filtered_combined_df
-    filtered_change_another = filtered_combined_df[filtered_combined_df['_source_df'] == 'change_another'].drop(columns=['_source_df'])
-    filtered_maintenance = filtered_combined_df[filtered_combined_df['_source_df'] == 'maintenance'].drop(columns=['_source_df'])
-    filtered_change_same = filtered_combined_df[filtered_combined_df['_source_df'] == 'change_same'].drop(columns=['_source_df'])
+        # Apply company filter - prioritize direct company_id from action item tables
+        if selected_company_id != 'All':
+            # First check for direct company_id from action item tables
+            if 'company_id' in filtered_df.columns:
+                filtered_df = filtered_df[filtered_df['company_id'] == selected_company_id]
+            # Fallback to company_id_customer if direct company_id is not available
+            elif 'company_id_customer' in filtered_df.columns:
+                filtered_df = filtered_df[filtered_df['company_id_customer'] == selected_company_id]
+        
+        return filtered_df
+
+    # Apply filters to each individual dataframe
+    filtered_change_another = apply_filters_to_dataframe(merged_change_another, start_date, end_date, selected_company_id)
+    filtered_maintenance = apply_filters_to_dataframe(merged_maintenance, start_date, end_date, selected_company_id)
+    filtered_change_same = apply_filters_to_dataframe(merged_change_same, start_date, end_date, selected_company_id)
 
 
     # Tabs

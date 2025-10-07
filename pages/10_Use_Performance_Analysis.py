@@ -35,6 +35,8 @@ try:
     tickets_df['created_at'] = pd.to_datetime(tickets_df['created_at'], errors='coerce')
     customercall_df['created_at'] = pd.to_datetime(customercall_df['created_at'], errors='coerce')
     ticketcall_df['created_at'] = pd.to_datetime(ticketcall_df['created_at'], errors='coerce')
+    # Ensure customers_df has datetime for date filtering
+    customers_df['created_at'] = pd.to_datetime(customers_df.get('created_at', pd.Series(dtype='datetime64[ns]')), errors='coerce')
 
     # Add company_id to customercall_df from customers_df
     if 'company_id' in customercall_df.columns:
@@ -93,6 +95,10 @@ try:
         
         if 'company_id' in ticketcall_df.columns:
             ticketcall_df = ticketcall_df.loc[ticketcall_df['company_id'] == company_id].copy()
+        
+        # Filter customers by company_id
+        if 'company_id' in customers_df.columns:
+            customers_df = customers_df.loc[customers_df['company_id'] == company_id].copy()
     
     # Filter data based on selected user
     if selected_user != 'All':
@@ -100,139 +106,146 @@ try:
         tickets_df = tickets_df.loc[tickets_df['created_by'] == user_id].copy()
         customercall_df = customercall_df.loc[customercall_df['created_by'] == user_id].copy()
         ticketcall_df = ticketcall_df.loc[ticketcall_df['created_by'] == user_id].copy()
+        # Filter customers created by user
+        if 'created_by' in customers_df.columns:
+            customers_df = customers_df.loc[customers_df['created_by'] == user_id].copy()
 
     # Filter data based on date range
     tickets_df = tickets_df.loc[(tickets_df['created_at'] >= start_date) & (tickets_df['created_at'] <= end_date)].copy()
     customercall_df = customercall_df.loc[(customercall_df['created_at'] >= start_date) & (customercall_df['created_at'] <= end_date)].copy()
     ticketcall_df = ticketcall_df.loc[(ticketcall_df['created_at'] >= start_date) & (ticketcall_df['created_at'] <= end_date)].copy()
+    if 'created_at' in customers_df.columns:
+        customers_df = customers_df.loc[(customers_df['created_at'] >= start_date) & (customers_df['created_at'] <= end_date)].copy()
+
+    # --- Counts Summary ---
+    st.header("Counts Summary")
+
+    # Totals metrics
+    m1, m2, m3, m4 = st.columns(4)
+    with m1:
+        st.metric("Total Customer Calls", len(customercall_df))
+    with m2:
+        st.metric("Total Ticket Calls", len(ticketcall_df))
+    with m3:
+        st.metric("Total Customers Created", len(customers_df) if not customers_df.empty else 0)
+    with m4:
+        st.metric("Total Tickets Created", len(tickets_df))
 
     # --- Visualizations ---
+    st.header("Calls Visualizations")
+    tab_cust, tab_ticket = st.tabs(["Customer Calls", "Ticket Calls"])
 
-    tab1, tab2 = st.tabs(["Customer Calls", "Ticket Calls"])
+    # Map for call direction
+    call_type_map = {1: "Outbound", 2: "Inbound"}
 
-    with tab1:
-        st.header("Customer Call Analysis")
-
-        # Donut chart for Inbound vs Outbound calls
-        st.subheader("Inbound vs Outbound Calls")
-        if not customercall_df.empty:
-            # Create a column for call direction based on call_type
-            # Assuming call_type 1 is outbound and 2 is inbound (based on sample data)
-            call_type_counts = customercall_df['call_type'].value_counts().reset_index()
-            call_type_counts.columns = ['Call Type', 'Count']
-            
-            # Map call types to readable names
-            call_type_map = {1: "Outbound", 2: "Inbound"}
-            call_type_counts['Call Direction'] = call_type_counts['Call Type'].map(call_type_map)
-            
-            # Create donut chart
-            fig_call_types = px.pie(
-                call_type_counts, 
-                values='Count', 
-                names='Call Direction',
-                title='Call Distribution by Direction',
-                hole=0.4,  # This makes it a donut chart
+    with tab_cust:
+        st.subheader("Inbound vs Outbound (Donut)")
+        if not customercall_df.empty and 'call_type' in customercall_df.columns:
+            call_dir = customercall_df['call_type'].map(call_type_map).fillna('Unknown')
+            call_counts = call_dir.value_counts().reset_index()
+            call_counts.columns = ['Direction', 'Count']
+            fig_cust_pie = px.pie(
+                call_counts,
+                values='Count',
+                names='Direction',
+                hole=0.5,
+                title='Customer Calls by Direction',
                 color_discrete_sequence=px.colors.qualitative.Set2
             )
-            fig_call_types.update_traces(textposition='inside', textinfo='percent+label')
-            st.plotly_chart(fig_call_types, use_container_width=True)
-        else:
-            st.info("No customer call data to display.")
-            
-        # Calls by Hour of Day
-        st.subheader("Calls by Hour of Day")
-        if not customercall_df.empty:
-            customercall_df.loc[:, 'hour'] = customercall_df['created_at'].dt.hour
-            calls_by_hour = customercall_df['hour'].value_counts().sort_index().reset_index()
-            calls_by_hour.columns = ['Hour', 'Number of Calls']
-            fig = px.bar(calls_by_hour, x='Hour', y='Number of Calls', title='Peak Call Times')
-            st.plotly_chart(fig, use_container_width=True)
+            fig_cust_pie.update_traces(textposition='inside', textinfo='percent+label')
+            st.plotly_chart(fig_cust_pie, use_container_width=True)
         else:
             st.info("No customer call data to display.")
 
-        # 2. Average Customer Calls per Customer
-        st.subheader("Average Customer Calls per Customer by User")
-        if not customercall_df.empty:
-            avg_calls_per_customer = customercall_df.groupby(['created_by', 'customer_id']).size().reset_index(name='num_calls')
-            avg_calls_per_user = avg_calls_per_customer.groupby('created_by')['num_calls'].mean().reset_index(name='avg_calls')
-            avg_calls_per_user = avg_calls_per_user.merge(users_df[['id', 'name']], left_on='created_by', right_on='id')
-            fig_avg_calls = px.bar(avg_calls_per_user, x='name', y='avg_calls', title='Average Customer Calls per Customer by User')
-            st.plotly_chart(fig_avg_calls, use_container_width=True)
+        st.subheader("Calls by Hour of Day (Bar)")
+        if not customercall_df.empty and 'created_at' in customercall_df.columns:
+            df_hours = customercall_df.dropna(subset=['created_at']).copy()
+            if not df_hours.empty:
+                df_hours.loc[:, 'hour'] = df_hours['created_at'].dt.hour
+                calls_by_hour = df_hours['hour'].value_counts().sort_index().reset_index()
+                calls_by_hour.columns = ['Hour', 'Number of Calls']
+                fig_cust_bar = px.bar(calls_by_hour, x='Hour', y='Number of Calls', title='Customer Calls by Hour')
+                st.plotly_chart(fig_cust_bar, use_container_width=True)
+            else:
+                st.info("No customer call data with valid timestamps.")
         else:
-            st.info("No customer call data to display for average calculation.")
-# minutes
-    with tab2:
-        st.header("Ticket Call Analysis")
+            st.info("No customer call data to display.")
 
-        # Merge with tickets_df to get customer_id
-        ticketcall_df_merged = pd.merge(ticketcall_df, tickets_df[['id', 'customer_id']], left_on='ticket_id', right_on='id', how='left')
-
-        # Donut chart for Inbound vs Outbound ticket calls
-        st.subheader("Inbound vs Outbound Ticket Calls")
-        if not ticketcall_df.empty:
-            # Create a column for call direction based on call_type
-            # Assuming call_type 1 is outbound and 2 is inbound (based on sample data)
-            ticket_call_type_counts = ticketcall_df['call_type'].value_counts().reset_index()
-            ticket_call_type_counts.columns = ['Call Type', 'Count']
-            
-            # Map call types to readable names
-            call_type_map = {1: "Outbound", 2: "Inbound"}
-            ticket_call_type_counts['Call Direction'] = ticket_call_type_counts['Call Type'].map(call_type_map)
-            
-            # Create donut chart
-            fig_ticket_call_types = px.pie(
-                ticket_call_type_counts, 
-                values='Count', 
-                names='Call Direction',
-                title='Ticket Call Distribution by Direction',
-                hole=0.4,  # This makes it a donut chart
+    with tab_ticket:
+        st.subheader("Inbound vs Outbound (Donut)")
+        if not ticketcall_df.empty and 'call_type' in ticketcall_df.columns:
+            ticket_dir = ticketcall_df['call_type'].map(call_type_map).fillna('Unknown')
+            ticket_counts = ticket_dir.value_counts().reset_index()
+            ticket_counts.columns = ['Direction', 'Count']
+            fig_ticket_pie = px.pie(
+                ticket_counts,
+                values='Count',
+                names='Direction',
+                hole=0.5,
+                title='Ticket Calls by Direction',
                 color_discrete_sequence=px.colors.qualitative.Set2
             )
-            fig_ticket_call_types.update_traces(textposition='inside', textinfo='percent+label')
-            st.plotly_chart(fig_ticket_call_types, use_container_width=True)
+            fig_ticket_pie.update_traces(textposition='inside', textinfo='percent+label')
+            st.plotly_chart(fig_ticket_pie, use_container_width=True)
         else:
             st.info("No ticket call data to display.")
 
-        # Calls by Hour of Day for tickets
-        st.subheader("Ticket Calls by Hour of Day")
-        if not ticketcall_df.empty:
-            ticketcall_df_merged['hour'] = ticketcall_df_merged['created_at'].dt.hour
-            calls_by_hour_ticket = ticketcall_df_merged['hour'].value_counts().sort_index().reset_index()
-            calls_by_hour_ticket.columns = ['Hour', 'Number of Calls']
-            fig_ticket = px.bar(calls_by_hour_ticket, x='Hour', y='Number of Calls', title='Peak Ticket Call Times')
-            st.plotly_chart(fig_ticket, use_container_width=True)
+        st.subheader("Calls by Hour of Day (Bar)")
+        if not ticketcall_df.empty and 'created_at' in ticketcall_df.columns:
+            df_hours_t = ticketcall_df.dropna(subset=['created_at']).copy()
+            if not df_hours_t.empty:
+                df_hours_t.loc[:, 'hour'] = df_hours_t['created_at'].dt.hour
+                calls_by_hour_t = df_hours_t['hour'].value_counts().sort_index().reset_index()
+                calls_by_hour_t.columns = ['Hour', 'Number of Calls']
+                fig_ticket_bar = px.bar(calls_by_hour_t, x='Hour', y='Number of Calls', title='Ticket Calls by Hour')
+                st.plotly_chart(fig_ticket_bar, use_container_width=True)
+            else:
+                st.info("No ticket call data with valid timestamps.")
         else:
             st.info("No ticket call data to display.")
 
-        # 2. Average Ticket Calls per Customer by User
-        st.subheader("Average Ticket Calls per Customer by User")
-        if not ticketcall_df.empty:
-            avg_ticket_calls_per_customer = ticketcall_df_merged.groupby(['created_by', 'customer_id']).size().reset_index(name='num_calls')
-            avg_ticket_calls_per_user = avg_ticket_calls_per_customer.groupby('created_by')['num_calls'].mean().reset_index(name='avg_calls')
-            avg_ticket_calls_per_user = avg_ticket_calls_per_user.merge(users_df[['id', 'name']], left_on='created_by', right_on='id')
-            fig_avg_calls = px.bar(avg_ticket_calls_per_user, x='name', y='avg_calls', title='Average Ticket Calls per Customer by User')
-            st.plotly_chart(fig_avg_calls, use_container_width=True)
-        else:
-            st.info("No ticket call data to display for average calculation.")
+    # Helper to show counts per user as side-by-side charts (bar + donut)
+    def show_counts_per_user(df, users_df, title, count_col_name):
+        st.subheader(title)
+        if df.empty or 'created_by' not in df.columns:
+            st.info("No data to display.")
+            return
+        counts = df.groupby('created_by').size().reset_index(name=count_col_name)
+        counts = counts.merge(users_df[['id', 'name']], left_on='created_by', right_on='id', how='left')
+        counts['user'] = counts['name'].fillna('Unknown')
+        counts = counts.drop(columns=['id', 'name'], errors='ignore')
+        counts = counts.sort_values(count_col_name, ascending=False)
 
-    # 3. Users and Number of Tickets
-    st.header("Number of Tickets per User")
-    if not tickets_df.empty:
-        tickets_by_user = tickets_df.groupby('created_by').size().reset_index(name='ticket_count')
-        tickets_by_user = tickets_by_user.merge(users_df[['id', 'name']], left_on='created_by', right_on='id')
-        fig_tickets = px.bar(tickets_by_user, x='name', y='ticket_count', title='Number of Tickets per User')
-        st.plotly_chart(fig_tickets, use_container_width=True)
-    else:
-        st.info("No ticket data to display.")
+        c1, c2 = st.columns(2)
+        with c1:
+            fig_bar = px.bar(
+                counts,
+                x='user',
+                y=count_col_name,
+                title=f"{title} (Bar)",
+            )
+            fig_bar.update_layout(xaxis_title='User', yaxis_title='Count')
+            st.plotly_chart(fig_bar, use_container_width=True)
+        with c2:
+            fig_pie = px.pie(
+                counts,
+                values=count_col_name,
+                names='user',
+                hole=0.5,
+                title=f"{title} (Donut)",
+                color_discrete_sequence=px.colors.qualitative.Set2
+            )
+            fig_pie.update_traces(textposition='inside', textinfo='percent+label')
+            st.plotly_chart(fig_pie, use_container_width=True)
 
-    # 4. Ticket Creation Over Time
-    st.header("Ticket Creation Over Time")
-    if not tickets_df.empty:
-        tickets_over_time = tickets_df.set_index('created_at').resample('D').size().reset_index(name='ticket_count')
-        fig_tickets_time = px.line(tickets_over_time, x='created_at', y='ticket_count', title='Daily Registered Tickets')
-        st.plotly_chart(fig_tickets_time, use_container_width=True)
-    else:
-        st.info("No ticket data to display.")
+    # Customer calls per user
+    show_counts_per_user(customercall_df, users_df, "Customer Calls per User", "customer_calls")
+    # Ticket calls per user
+    show_counts_per_user(ticketcall_df, users_df, "Ticket Calls per User", "ticket_calls")
+    # Customers created per user
+    show_counts_per_user(customers_df, users_df, "Customers Created per User", "customers_created")
+    # Tickets created per user
+    show_counts_per_user(tickets_df, users_df, "Tickets Created per User", "tickets_created")
 
 except Exception as e:
     st.error(f"An error occurred: {e}")

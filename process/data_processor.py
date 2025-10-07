@@ -473,7 +473,13 @@ def join_ticket_and_call_data(tickets_df, ticketcall_df, users_df, ticket_catego
 
     # --- Join with Users (for ticket creator) ---
     if not users_df.empty and 'created_by_ticket' in combined_df.columns:
-        user_ticket_creator_df = users_df.rename(columns={'id': 'created_by_ticket', 'name': 'ticket_creator_name'})
+        user_ticket_creator_df = users_df.copy()
+        user_ticket_creator_df = user_ticket_creator_df.rename(columns={'id': 'created_by_ticket', 'name': 'ticket_creator_name'})
+        
+        # Ensure data types match before merging
+        combined_df['created_by_ticket'] = pd.to_numeric(combined_df['created_by_ticket'], errors='coerce')
+        user_ticket_creator_df['created_by_ticket'] = pd.to_numeric(user_ticket_creator_df['created_by_ticket'], errors='coerce')
+        
         combined_df = pd.merge(
             combined_df,
             user_ticket_creator_df[['created_by_ticket', 'ticket_creator_name']],
@@ -483,7 +489,13 @@ def join_ticket_and_call_data(tickets_df, ticketcall_df, users_df, ticket_catego
 
     # --- Join with Users (for call creator) ---
     if not users_df.empty and 'created_by_call' in combined_df.columns:
-        user_call_creator_df = users_df.rename(columns={'id': 'created_by_call', 'name': 'call_creator_name'})
+        user_call_creator_df = users_df.copy()
+        user_call_creator_df = user_call_creator_df.rename(columns={'id': 'created_by_call', 'name': 'call_creator_name'})
+        
+        # Ensure data types match before merging
+        combined_df['created_by_call'] = pd.to_numeric(combined_df['created_by_call'], errors='coerce')
+        user_call_creator_df['created_by_call'] = pd.to_numeric(user_call_creator_df['created_by_call'], errors='coerce')
+        
         combined_df = pd.merge(
             combined_df,
             user_call_creator_df[['created_by_call', 'call_creator_name']],
