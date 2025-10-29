@@ -405,18 +405,25 @@ def main():
             except Exception as _e:
                 st.info(f"Could not reconstruct customer names: {_e}")
 
-        if 'customer_name' in unique_tab_filtered_tickets.columns:
-            customer_counts = unique_tab_filtered_tickets['customer_name'].value_counts().reset_index()
-            customer_counts.columns = ['Customer', 'Count']
-            customer_counts = customer_counts.head(10)  # Top 10
+        if 'customer_id' in unique_tab_filtered_tickets.columns and 'customer_name' in unique_tab_filtered_tickets.columns:
+            # استخدام customer_id للتجميع لتجنب مشكلة تشابه أسماء العملاء
+            customer_counts = unique_tab_filtered_tickets.groupby('customer_id').agg(
+                Count=('id_ticket', 'count'),
+                Customer=('customer_name', 'first')  # استخدام first للحصول على اسم العميل
+            ).reset_index()
             
+            # ترتيب حسب عدد التذاكر وأخذ أعلى 10
+            customer_counts = customer_counts.sort_values('Count', ascending=False).head(10)
+            
+            # إنشاء الرسم البياني
             fig = px.bar(customer_counts, x='Customer', y='Count', title='Top 10 Customers by Ticket Count')
             fig.update_layout(xaxis_tickangle=-45)
             st.plotly_chart(fig, use_container_width=True)
 
-            # Also show table like in the old page
-            top_customers_by_ticket = unique_tab_filtered_tickets['customer_name'].value_counts().nlargest(10).reset_index()
-            top_customers_by_ticket.columns = ['Customer Name', 'Number of Tickets']
+            # عرض الجدول كما في الصفحة القديمة
+            top_customers_by_ticket = customer_counts[['Customer', 'Count']].rename(
+                columns={'Customer': 'Customer Name', 'Count': 'Number of Tickets'}
+            )
             st.dataframe(top_customers_by_ticket)
 
             # Ensure description column exists for ticket details (align with requested snippet)
@@ -433,9 +440,12 @@ def main():
                     call_counts_map = filtered_calls_data.groupby(use_ticket_id).size().to_dict()
 
             # Optional details per top customer (similar to old page)
-            for customer_name in top_customers_by_ticket['Customer Name']:
+            # استخدام customer_counts مباشرة لأنه يحتوي على customer_id
+            for _, row in customer_counts.iterrows():
+                customer_name = row['Customer']
+                customer_id = row['customer_id']
                 with st.expander(f"Details for {customer_name}"):
-                    customer_tickets = unique_tab_filtered_tickets[unique_tab_filtered_tickets['customer_name'] == customer_name]
+                    customer_tickets = unique_tab_filtered_tickets[unique_tab_filtered_tickets['customer_id'] == customer_id]
                     st.write(f"Total Tickets: {len(customer_tickets)}")
                     st.write("Ticket Details:")
                     # Build ticket details with call_count as requested
