@@ -93,10 +93,11 @@ def customers_with_geo(customers_df: pd.DataFrame,
     customers_df = parse_dates(customers_df, ['created_at', 'updated_at'])
     
     # Merge governorates
-    if 'governomate_id' in customers_df.columns and 'id' in governorates_df.columns:
+    gov_col = 'governorate_id' if 'governorate_id' in customers_df.columns else ('governomate_id' if 'governomate_id' in customers_df.columns else None)
+    if gov_col and 'id' in governorates_df.columns:
         customers_df = customers_df.merge(
             governorates_df[['id', 'name']],
-            left_on='governomate_id',
+            left_on=gov_col,
             right_on='id',
             how='left',
             suffixes=('', '_governorate')

@@ -40,7 +40,11 @@ def get_call_analysis_data(dataframes):
     customers_df['company_name'] = customers_df['company_id'].map(company_mapping).fillna("NULL")
 
     # Merge governorate into customers
-    customers_df = customers_df.merge(governorates_df[['id', 'governorate_name']], left_on='governomate_id', right_on='id', how='left', suffixes=('', '_gov'))
+    gov_col = 'governorate_id' if 'governorate_id' in customers_df.columns else ('governomate_id' if 'governomate_id' in customers_df.columns else None)
+    if gov_col:
+        customers_df = customers_df.merge(governorates_df[['id', 'governorate_name']], left_on=gov_col, right_on='id', how='left', suffixes=('', '_gov'))
+    else:
+        customers_df['governorate_name'] = 'Unknown Governorate'
 
     # Merge dataframes
     customers_df['id'] = pd.to_numeric(customers_df['id'], errors='coerce')

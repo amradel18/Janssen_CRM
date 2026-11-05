@@ -152,6 +152,13 @@ def load_data(table_name, cache_key=None):
             if col in processed_df.columns:
                 processed_df[col] = pd.to_datetime(processed_df[col], errors='coerce')
                 
+        # Standardize governorate/governomate column names for compatibility
+        if table_name == 'customers':
+            if 'governorate_id' in processed_df.columns and 'governomate_id' not in processed_df.columns:
+                processed_df['governomate_id'] = processed_df['governorate_id']
+            elif 'governomate_id' in processed_df.columns and 'governorate_id' not in processed_df.columns:
+                processed_df['governorate_id'] = processed_df['governomate_id']
+
         return processed_df
     except Exception as e:
         st.error(f"خطأ في تحميل جدول {table_name}: {str(e)}")
@@ -262,6 +269,13 @@ def process_dataframes(dataframes):
                 # If conversion fails completely, create a new column with zeros
                 processed_df['call_duration'] = 0
         
+        # Special handling for customers geographic columns
+        if key == 'customers':
+            if 'governorate_id' in processed_df.columns and 'governomate_id' not in processed_df.columns:
+                processed_df['governomate_id'] = processed_df['governorate_id']
+            elif 'governomate_id' in processed_df.columns and 'governorate_id' not in processed_df.columns:
+                processed_df['governorate_id'] = processed_df['governomate_id']
+
         # Store the processed dataframe
         processed[key] = processed_df
     

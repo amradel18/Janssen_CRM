@@ -39,15 +39,30 @@ def main():
 
     # Merge dataframes
     if not governorates_df.empty:
-        customers_df = pd.merge(customers_df, governorates_df, left_on='governomate_id', right_on='id', how='left', suffixes=('', '_gov'))
-        customers_df.rename(columns={'name_gov': 'governorate_name'}, inplace=True)
-    if not cities_df.empty:
+        gov_col = 'governorate_id' if 'governorate_id' in customers_df.columns else ('governomate_id' if 'governomate_id' in customers_df.columns else None)
+        if gov_col:
+            customers_df = pd.merge(customers_df, governorates_df, left_on=gov_col, right_on='id', how='left', suffixes=('', '_gov'))
+            if 'name_gov' in customers_df.columns:
+                customers_df.rename(columns={'name_gov': 'governorate_name'}, inplace=True)
+            elif 'name_y' in customers_df.columns:
+                customers_df.rename(columns={'name_y': 'governorate_name'}, inplace=True)
+    if not cities_df.empty and 'city_id' in customers_df.columns:
         customers_df = pd.merge(customers_df, cities_df, left_on='city_id', right_on='id', how='left', suffixes=('', '_city'))
-        customers_df.rename(columns={'name_city': 'city_name'}, inplace=True)
+        if 'name_city' in customers_df.columns:
+            customers_df.rename(columns={'name_city': 'city_name'}, inplace=True)
+        elif 'name_y' in customers_df.columns:
+            customers_df.rename(columns={'name_y': 'city_name'}, inplace=True)
 
     # Handle missing values for geographic data
-    customers_df['governorate_name'] = customers_df['governorate_name'].fillna('Unknown Governorate')
-    customers_df['city_name'] = customers_df['city_name'].fillna('Unknown City')
+    if 'governorate_name' in customers_df.columns:
+        customers_df['governorate_name'] = customers_df['governorate_name'].fillna('Unknown Governorate')
+    else:
+        customers_df['governorate_name'] = 'Unknown Governorate'
+
+    if 'city_name' in customers_df.columns:
+        customers_df['city_name'] = customers_df['city_name'].fillna('Unknown City')
+    else:
+        customers_df['city_name'] = 'Unknown City'
 
     # Map company_id to company_name using companies table
     company_mapping = get_company_mapping()

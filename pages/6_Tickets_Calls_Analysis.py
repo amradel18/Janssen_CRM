@@ -53,15 +53,23 @@ def get_ticket_call_analysis_data(dataframes):
         merged_df['company_id'] = merged_df['company_id_ticket'] if 'company_id_ticket' in merged_df.columns else tickets_df.loc[tickets_df['id'].isin(merged_df['ticket_id']), 'company_id'].values
 
     # Merge with customers to get governorate
-    merged_df = merged_df.merge(customers_df[['id', 'name', 'governomate_id', 'company_id']], left_on='customer_id', right_on='id', how='left', suffixes=('', '_customer'))
+    cust_cols = ['id', 'name', 'company_id']
+    gov_col = 'governorate_id' if 'governorate_id' in customers_df.columns else ('governomate_id' if 'governomate_id' in customers_df.columns else None)
+    if gov_col:
+        cust_cols.append(gov_col)
+    avail_cust_cols = [c for c in cust_cols if c in customers_df.columns]
+    merged_df = merged_df.merge(customers_df[avail_cust_cols], left_on='customer_id', right_on='id', how='left', suffixes=('', '_customer'))
     merged_df = merged_df.rename(columns={'name': 'customer_name'})
     
     # If company_id is missing, try to get it from customer
     if 'company_id' not in merged_df.columns or merged_df['company_id'].isna().all():
-        merged_df['company_id'] = merged_df['company_id_customer']
+        merged_df['company_id'] = merged_df.get('company_id_customer', merged_df.get('company_id'))
 
     # Merge with governorates
-    merged_df = merged_df.merge(governorates_df[['id', 'governorate_name']], left_on='governomate_id', right_on='id', how='left', suffixes=('', '_gov'))
+    if gov_col and gov_col in merged_df.columns:
+        merged_df = merged_df.merge(governorates_df[['id', 'governorate_name']], left_on=gov_col, right_on='id', how='left', suffixes=('', '_gov'))
+    else:
+        merged_df['governorate_name'] = 'Unknown Governorate'
 
     # Merge with other dimension tables - using unique suffixes for each merge
     # First, ensure users_df has a unique id column for merging
